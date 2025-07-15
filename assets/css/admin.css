@@ -1,0 +1,444 @@
+/* SiteOverlay Pro Admin Styles - Enhanced Version */
+/* Maintains constitutional compliance - no meta box styling modifications */
+
+/* =========================
+   ADMIN SETTINGS PAGE ONLY
+   ========================= */
+
+.siteoverlay-admin-page {
+    max-width: 1200px;
+    margin: 20px 0;
+}
+
+.siteoverlay-admin-header {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.siteoverlay-admin-header h1 {
+    color: #2271b1;
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.siteoverlay-admin-header .subtitle {
+    color: #666;
+    margin: 0;
+    font-size: 14px;
+}
+
+/* =========================
+   LICENSE STATUS CARDS
+   ========================= */
+
+.license-status-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.license-status-card.trial {
+    border-left: 4px solid #ff9800;
+}
+
+.license-status-card.active {
+    border-left: 4px solid #4caf50;
+}
+
+.license-status-card.expired {
+    border-left: 4px solid #f44336;
+}
+
+.license-status-card.invalid {
+    border-left: 4px solid #9e9e9e;
+}
+
+.license-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.license-status-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.license-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.license-badge.trial {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.license-badge.active {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.license-badge.expired {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.license-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.license-detail-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.license-detail-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.license-detail-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+/* =========================
+   TRIAL REQUEST FORM
+   ========================= */
+
+.trial-request-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.trial-form-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.trial-form-header h2 {
+    color: #2271b1;
+    margin: 0 0 10px 0;
+    font-size: 22px;
+}
+
+.trial-form-header p {
+    color: #666;
+    margin: 0;
+    font-size: 14px;
+}
+
+.trial-request-form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.trial-form-group {
+    margin-bottom: 20px;
+}
+
+.trial-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.trial-form-group input[type="email"] {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.trial-form-group input[type="email"]:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.1);
+}
+
+.trial-submit-btn {
+    width: 100%;
+    padding: 12px 24px;
+    background: #2271b1;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.trial-submit-btn:hover {
+    background: #1e5a8a;
+}
+
+.trial-submit-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* =========================
+   LICENSE KEY FORM
+   ========================= */
+
+.license-key-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.license-key-form {
+    max-width: 500px;
+}
+
+.license-form-group {
+    margin-bottom: 20px;
+}
+
+.license-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.license-key-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    transition: border-color 0.3s ease;
+}
+
+.license-key-input:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.1);
+}
+
+.license-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.license-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.license-btn.primary {
+    background: #2271b1;
+    color: #fff;
+}
+
+.license-btn.primary:hover {
+    background: #1e5a8a;
+}
+
+.license-btn.secondary {
+    background: #f1f1f1;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.license-btn.secondary:hover {
+    background: #e0e0e0;
+}
+
+.license-btn.danger {
+    background: #dc3545;
+    color: #fff;
+}
+
+.license-btn.danger:hover {
+    background: #c82333;
+}
+
+/* =========================
+   LOADING & FEEDBACK STATES
+   ========================= */
+
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #2271b1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.feedback-message {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.feedback-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.feedback-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.feedback-message.info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.feedback-message.warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+/* =========================
+   RESPONSIVE DESIGN
+   ========================= */
+
+@media (max-width: 768px) {
+    .siteoverlay-admin-page {
+        margin: 10px;
+    }
+    
+    .license-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .license-actions {
+        flex-direction: column;
+    }
+    
+    .license-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .trial-request-form {
+        max-width: 100%;
+    }
+}
+
+/* =========================
+   CONSTITUTIONAL COMPLIANCE
+   ========================= */
+
+/* 
+ * CRITICAL: These styles ONLY apply to admin settings pages
+ * NO styles affecting .siteoverlay-meta-box or overlay display
+ * Core overlay functionality remains untouched per constitution
+ */
+
+/* Admin notices for license status */
+.notice.siteoverlay-license-notice {
+    border-left-width: 4px;
+    padding: 12px;
+}
+
+.notice.siteoverlay-license-notice.notice-trial {
+    border-left-color: #ff9800;
+}
+
+.notice.siteoverlay-license-notice.notice-expired {
+    border-left-color: #f44336;
+}
+
+/* Quick stats in admin dashboard (if added later) */
+.siteoverlay-dashboard-widget {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.siteoverlay-dashboard-widget h3 {
+    margin: 0 0 10px 0;
+    color: #2271b1;
+}
+
+/* Enhanced admin page typography */
+.siteoverlay-admin-page h2 {
+    color: #2271b1;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.siteoverlay-admin-page .description {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+/* Feature highlight boxes (for future enhancements) */
+.feature-highlight {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.feature-highlight h3 {
+    color: #fff;
+    margin: 0 0 10px 0;
+}
+
+.feature-highlight p {
+    margin: 0;
+    opacity: 0.9;
+}
