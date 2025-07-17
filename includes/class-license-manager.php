@@ -211,7 +211,7 @@ class SiteOverlay_License_Manager {
             'requestSource' => 'plugin_admin'
         );
         
-        $response = wp_remote_post($this->api_base_url . '/start-trial', array(
+        $response = wp_remote_post($this->api_base_url . '/request-trial', array(
             'timeout' => $this->api_timeout,
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode($trial_data),
