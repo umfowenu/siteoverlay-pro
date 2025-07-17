@@ -230,11 +230,12 @@ class SiteOverlay_License_Manager {
         
         if ($response_code === 200 && $data && isset($data['success'])) {
             if ($data['success']) {
+                // FIXED: Do NOT return license key - force email verification
                 wp_send_json_success(array(
-                    'message' => $data['message'],
+                    'message' => 'Trial license has been sent to your email address. Please check your inbox and enter the license key below to activate your 14-day trial.',
                     'email' => $email,
                     'full_name' => $full_name,
-                    'license_key' => $data['data']['license_key'] ?? null
+                    // REMOVED: 'license_key' => $data['data']['license_key'] ?? null
                 ));
             } else {
                 wp_send_json_error($data['message']);
@@ -593,15 +594,19 @@ class SiteOverlay_License_Manager {
                     },
                     success: function(response) {
                         if (response.success) {
-                            $('#trial-response').html('<div class="notice notice-success inline trial-success" style="padding: 15px; margin: 0;"><p><strong>✅ Trial License Sent!</strong><br>' + response.data.message + '<br><br>License Key: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">' + (response.data.license_key || 'Check your email') + '</code></p></div>').fadeIn();
+                            // FIXED: Do NOT display license key - force email verification
+                            $('#trial-response').html('<div class="notice notice-success inline trial-success" style="padding: 15px; margin: 0;"><p><strong>✅ Trial License Sent!</strong><br>' + response.data.message + '<br><br><strong>Next Steps:</strong><br>1. Check your email inbox (and spam folder)<br>2. Copy the license key from the email<br>3. Paste it in the "License Key" field below<br>4. Click "Activate License"</p></div>').fadeIn();
                             
-                            // Auto-fill license key if provided
-                            if (response.data.license_key) {
-                                $('#license_key').val(response.data.license_key);
-                            }
+                            // REMOVED: Auto-fill license key - force manual entry from email
+                            // REMOVED: if (response.data.license_key) { $('#license_key').val(response.data.license_key); }
                             
-                            // Clear form fields
+                            // Clear form fields but keep the trial section visible for instructions
                             $('#trial-name, #trial-email, #trial-website').val('');
+                            
+                            // Focus on license key field to guide user
+                            setTimeout(function() {
+                                $('#license_key').focus();
+                            }, 1000);
                         } else {
                             $('#trial-response').html('<div class="notice notice-error inline trial-error" style="padding: 15px; margin: 0;"><p><strong>❌ Error:</strong> ' + response.data + '</p></div>').fadeIn();
                         }
