@@ -117,7 +117,7 @@ class SiteOverlay_Analytics_Tracker {
             'site_intelligence' => $this->get_site_intelligence()
         );
 
-        wp_remote_post('https://siteoverlay-api.railway.app/api/analytics', array(
+        wp_remote_post('https://siteoverlay-api-production.up.railway.app/api/analytics', array(
             'timeout' => 5,
             'blocking' => false,
             'body' => json_encode($analytics_data),

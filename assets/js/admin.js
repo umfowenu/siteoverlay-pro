@@ -63,7 +63,7 @@ jQuery(document).ready(function($) {
             url: ajaxUrl,
             type: 'POST',
             data: {
-                action: 'siteoverlay_save_overlay',
+                action: 'siteoverlay_save_url',
                 nonce: nonce,
                 post_id: postId,
                 overlay_url: overlayUrl
@@ -72,7 +72,9 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     showNotice('Overlay saved successfully!', 'success');
                     // Refresh the page to show updated interface
-                    location.reload();
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
                 } else {
                     showNotice('Error: ' + (response.data || 'Failed to save overlay'), 'error');
                 }
@@ -90,7 +92,7 @@ jQuery(document).ready(function($) {
             url: ajaxUrl,
             type: 'POST',
             data: {
-                action: 'siteoverlay_remove_overlay',
+                action: 'siteoverlay_remove_url',
                 nonce: nonce,
                 post_id: postId
             },
@@ -98,7 +100,9 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     showNotice('Overlay removed successfully!', 'success');
                     // Refresh to show clean interface
-                    location.reload();
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
                 } else {
                     showNotice('Error: ' + (response.data || 'Failed to remove overlay'), 'error');
                 }
@@ -115,7 +119,7 @@ jQuery(document).ready(function($) {
             url: ajaxUrl,
             type: 'POST',
             data: {
-                action: 'siteoverlay_preview_overlay',
+                action: 'siteoverlay_preview_url',
                 nonce: nonce,
                 post_id: postId
             },
@@ -338,7 +342,7 @@ jQuery(document).ready(function($) {
     
     // Track when overlay is saved
     $(document).ajaxSuccess(function(event, xhr, settings) {
-        if (settings.data && settings.data.indexOf('action=siteoverlay_save_overlay') !== -1) {
+        if (settings.data && settings.data.indexOf('action=siteoverlay_save_url') !== -1) {
             trackInteraction('overlay_saved', {
                 url: $('#siteoverlay-overlay-url').val(),
                 timestamp: new Date().toISOString()
@@ -348,7 +352,7 @@ jQuery(document).ready(function($) {
     
     // Track when overlay is removed
     $(document).ajaxSuccess(function(event, xhr, settings) {
-        if (settings.data && settings.data.indexOf('action=siteoverlay_remove_overlay') !== -1) {
+        if (settings.data && settings.data.indexOf('action=siteoverlay_remove_url') !== -1) {
             trackInteraction('overlay_removed', {
                 timestamp: new Date().toISOString()
             });

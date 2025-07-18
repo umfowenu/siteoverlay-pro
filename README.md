@@ -221,14 +221,14 @@ define('WP_DEBUG_LOG', true);
 ## ðŸ¤ Support
 
 ### Documentation
-- Plugin documentation: [https://siteoverlaypro.com/docs](https://siteoverlaypro.com/docs)
-- Video tutorials: [https://siteoverlaypro.com/tutorials](https://siteoverlaypro.com/tutorials)
-- FAQ: [https://siteoverlaypro.com/faq](https://siteoverlaypro.com/faq)
+_ Plugin documentation: https://ebiz360.ca/docs
+_ Video tutorials: https://ebiz360.ca/tutorials
+_ FAQ: https://ebiz360.ca/faq
 
 ### Support Channels
-- **Email Support**: support@siteoverlaypro.com
-- **Priority Support**: Available for licensed users
-- **Community Forum**: [https://siteoverlaypro.com/community](https://siteoverlaypro.com/community)
+_ **Email Support**: info@ebiz360.ca
+_ **Priority Support**: Available for licensed users
+_ **Purchase License**: https://siteoverlay.24hr.pro/
 
 ## ðŸ“„ License
 
@@ -281,4 +281,4 @@ GNU General Public License for more details.
 
 **SiteOverlay Pro** - Professional rank & rent solutions for WordPress
 
-For more information, visit [https://siteoverlaypro.com](https://siteoverlaypro.com)
+Developed by eBiz360 | For support: info@ebiz360.ca | Purchase: https://siteoverlay.24hr.pro/
