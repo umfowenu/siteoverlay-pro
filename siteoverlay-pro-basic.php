@@ -69,6 +69,9 @@ class SiteOverlay_Pro {
     public function admin_init() {
         // Register settings
         register_setting('siteoverlay_settings', 'siteoverlay_urls');
+        
+        // 8. Admin Notice System
+        add_action('admin_notices', array($this, 'display_admin_notices'));
     }
     
     public function add_admin_menu() {
@@ -157,72 +160,148 @@ class SiteOverlay_Pro {
                 
                 <?php 
                 $is_registered = get_option('siteoverlay_registration_name');
-                $registration_status = get_option('siteoverlay_registration_status');
+                $should_disable_trial = $this->should_disable_trial_button();
                 ?>
                 
+                <!-- 2. Admin Interface Behavior by State -->
                 <?php if ($license_status['state'] === 'unlicensed'): ?>
-                    <?php if (!$is_registered): ?>
-                        <!-- Initial Registration Form -->
-                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-                            <h3 style="margin: 0 0 15px 0; color: #856404;">🎯 Get Started with SiteOverlay Pro</h3>
-                            <p style="margin: 0 0 20px 0; color: #856404;">Choose how you'd like to activate SiteOverlay Pro:</p>
-                            
-                            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                                <button type="button" class="button button-primary" id="show-trial-form">Start 14-Day Free Trial</button>
-                                <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
-                            </div>
-                            
-                            <!-- Trial Registration Form -->
-                            <div id="trial-registration-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                                <h4 style="margin: 0 0 15px 0; color: #495057;">Register for Free Trial</h4>
-                                <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter your details below to receive your 14-day trial license key via email.</p>
-                                
-                                <div style="margin-bottom: 15px;">
-                                    <label for="full-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Full Name:</label>
-                                    <input type="text" id="full-name" placeholder="Enter your full name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
-                                </div>
-                                
-                                <div style="margin-bottom: 15px;">
-                                    <label for="email-address" style="display: block; margin-bottom: 5px; font-weight: bold;">Email Address:</label>
-                                    <input type="email" id="email-address" placeholder="Enter your email address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
-                                </div>
-                                
-                                <button type="button" class="button button-primary" id="submit-trial-registration">Submit Registration</button>
-                            </div>
-                            
-                            <!-- License Key Form -->
-                            <div id="license-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                                <h4 style="margin: 0 0 15px 0; color: #495057;">Enter License Key</h4>
-                                <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter the license key that was emailed to you after purchase.</p>
-                                
-                                <div style="margin-bottom: 15px;">
-                                    <label for="license-key" style="display: block; margin-bottom: 5px; font-weight: bold;">License Key:</label>
-                                    <input type="text" id="license-key" placeholder="Enter your license key" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
-                                </div>
-                                
-                                <button type="button" class="button button-primary" id="validate-license">Activate License</button>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <!-- Waiting for License Key -->
-                        <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-                            <h3 style="margin: 0 0 15px 0; color: #0c5460;">📧 Check Your Email</h3>
-                            <p style="margin: 0 0 15px 0; color: #0c5460;">
-                                Registration submitted successfully! Please check your email (<strong><?php echo esc_html(get_option('siteoverlay_registration_email')); ?></strong>) for your trial license key.
-                            </p>
-                            <p style="margin: 0 0 15px 0; color: #0c5460;">Once you receive the license key, enter it below to activate your trial.</p>
-                            
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                                <h4 style="margin: 0 0 15px 0; color: #495057;">Enter Your Trial License Key</h4>
-                                <input type="text" id="license-key" placeholder="Enter your trial license key" style="width: 300px; padding: 8px; margin-right: 10px;" />
-                                <button type="button" class="button button-primary" id="validate-license">Activate Trial</button>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                <?php elseif ($license_status['state'] === 'pending'): ?>
+                    <!-- UNLICENSED STATE -->
                     <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 15px 0; color: #856404;">⏳ License Pending Validation</h3>
-                        <p style="margin: 0 0 15px 0; color: #856404;">A license key has been entered but not yet validated. Please check your email for the license key and enter it below.</p>
+                        <h3 style="margin: 0 0 15px 0; color: #856404;">🎯 Get Started with SiteOverlay Pro</h3>
+                        <p style="margin: 0 0 20px 0; color: #856404;">Choose how you'd like to activate SiteOverlay Pro:</p>
+                        
+                        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                            <button type="button" class="button button-primary" id="show-trial-form">Start 14-Day Free Trial</button>
+                            <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                        </div>
+                        
+                        <!-- Trial Registration Form -->
+                        <div id="trial-registration-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                            <h4 style="margin: 0 0 15px 0; color: #495057;">Register for Free Trial</h4>
+                            <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter your details below to receive your 14-day trial license key via email.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label for="full-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Full Name:</label>
+                                <input type="text" id="full-name" placeholder="Enter your full name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label for="email-address" style="display: block; margin-bottom: 5px; font-weight: bold;">Email Address:</label>
+                                <input type="email" id="email-address" placeholder="Enter your email address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="submit-trial-registration">Submit Registration</button>
+                        </div>
+                        
+                        <!-- License Key Form -->
+                        <div id="license-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                            <h4 style="margin: 0 0 15px 0; color: #495057;">Enter License Key</h4>
+                            <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter the license key that was emailed to you after purchase.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label for="license-key" style="display: block; margin-bottom: 5px; font-weight: bold;">License Key:</label>
+                                <input type="text" id="license-key" placeholder="Enter your license key" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="validate-license">Activate License</button>
+                        </div>
+                    </div>
+                    
+                <?php elseif ($license_status['state'] === 'pending'): ?>
+                    <!-- PENDING STATE -->
+                    <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 15px 0; color: #0c5460;">📧 Check Your Email</h3>
+                        <p style="margin: 0 0 15px 0; color: #0c5460;">
+                            Registration submitted successfully! Please check your email (<strong><?php echo esc_html(get_option('siteoverlay_registration_email')); ?></strong>) for your trial license key.
+                        </p>
+                        <p style="margin: 0 0 15px 0; color: #0c5460;">Once you receive the license key, enter it below to activate your trial.</p>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #495057;">Enter Your Trial License Key</h4>
+                            <input type="text" id="license-key" placeholder="Enter your trial license key" style="width: 300px; padding: 8px; margin-right: 10px;" />
+                            <button type="button" class="button button-primary" id="validate-license">Activate Trial</button>
+                        </div>
+                    </div>
+                    
+                <?php elseif ($license_status['state'] === 'trial_active'): ?>
+                    <!-- TRIAL ACTIVE STATE -->
+                    <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+                        <?php if ($license_status['days_remaining'] <= 7): ?>
+                            <h3 style="margin: 0 0 15px 0; color: #dc3545;">⚠️ Trial expires in <?php echo $license_status['days_remaining']; ?> days! Upgrade to continue</h3>
+                        <?php else: ?>
+                            <h3 style="margin: 0 0 15px 0; color: #0c5460;">⏰ Trial Active - <?php echo $license_status['days_remaining']; ?> days remaining</h3>
+                        <?php endif; ?>
+                        
+                        <p style="margin: 0 0 15px 0; color: #0c5460;">
+                            <strong>License Key:</strong> <?php echo esc_html(get_option('siteoverlay_license_key')); ?><br>
+                            <strong>Expires:</strong> <?php echo $license_status['expiry']; ?><br>
+                            <strong>Registered Email:</strong> <?php echo esc_html(get_option('siteoverlay_registration_email')); ?>
+                        </p>
+                        
+                        <!-- 5. Purchase Options Display -->
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 15px 0; color: #856404;">🚀 Upgrade to Full License</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Professional</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$35/month</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Up to 5 websites</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary">Get Professional</a>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Annual Unlimited</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$197/year</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Lifetime</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$297</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">One-time payment</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" target="_blank" class="button button-primary">Get Lifetime</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                        
+                        <div id="license-form" style="display: none; margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #495057;">Enter Your License Key</h4>
+                            <input type="text" id="upgrade-license-key" placeholder="Enter your license key" style="width: 300px; padding: 8px; margin-right: 10px;" />
+                            <button type="button" class="button button-primary" id="validate-upgrade-license">Activate License</button>
+                        </div>
+                    </div>
+                    
+                <?php elseif ($license_status['state'] === 'trial_expired'): ?>
+                    <!-- TRIAL EXPIRED STATE -->
+                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 15px 0; color: #721c24;">❌ Trial has expired. Enter a paid license to continue</h3>
+                        <p style="margin: 0 0 15px 0; color: #721c24;">Your 14-day trial has expired. Please upgrade to a full license to continue using SiteOverlay Pro.</p>
+                        
+                        <!-- 5. Purchase Options Display -->
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 15px 0; color: #856404;">🚀 Choose Your Plan</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Professional</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$35/month</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Up to 5 websites</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary">Get Professional</a>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Annual Unlimited</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$197/year</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Lifetime</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$297</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">One-time payment</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" target="_blank" class="button button-primary">Get Lifetime</a>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
                             <h4 style="margin: 0 0 15px 0; color: #495057;">Enter Your License Key</h4>
@@ -230,36 +309,9 @@ class SiteOverlay_Pro {
                             <button type="button" class="button button-primary" id="validate-license">Activate License</button>
                         </div>
                     </div>
-                <?php elseif ($license_status['state'] === 'licensed' && $license_status['status'] === 'trial'): ?>
-                    <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 15px 0; color: #0c5460;">🎯 Trial License Active</h3>
-                        <p style="margin: 0 0 15px 0; color: #0c5460;">
-                            <strong>License Key:</strong> <?php echo esc_html(get_option('siteoverlay_license_key')); ?><br>
-                            <strong>Expires:</strong> <?php echo $license_status['expiry']; ?><br>
-                            <strong>Registered Email:</strong> <?php echo esc_html(get_option('siteoverlay_registration_email')); ?>
-                        </p>
-                        <p style="margin: 0 0 15px 0; color: #0c5460;">Your trial is active and all features are unlocked!</p>
-                        
-                        <button type="button" class="button button-secondary" id="show-license-form">Upgrade to Full License</button>
-                        
-                        <div id="license-form" style="display: none; margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <h4 style="margin: 0 0 15px 0; color: #495057;">Upgrade to Full License</h4>
-                            <input type="text" id="upgrade-license-key" placeholder="Enter your full license key" style="width: 300px; padding: 8px; margin-right: 10px;" />
-                            <button type="button" class="button button-primary" id="validate-upgrade-license">Activate Full License</button>
-                        </div>
-                    </div>
-                <?php elseif ($license_status['state'] === 'expired'): ?>
-                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 15px 0; color: #721c24;">❌ Trial License Expired</h3>
-                        <p style="margin: 0 0 15px 0; color: #721c24;">Your 14-day trial has expired. Please upgrade to a full license to continue using SiteOverlay Pro.</p>
-                        
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                            <h4 style="margin: 0 0 15px 0; color: #495057;">Enter Full License Key</h4>
-                            <input type="text" id="license-key" placeholder="Enter your full license key" style="width: 300px; padding: 8px; margin-right: 10px;" />
-                            <button type="button" class="button button-primary" id="validate-license">Activate License</button>
-                        </div>
-                    </div>
+                    
                 <?php elseif ($license_status['state'] === 'licensed'): ?>
+                    <!-- LICENSED (PAID) STATE -->
                     <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
                         <h3 style="margin: 0 0 15px 0; color: #155724;">✅ License Active</h3>
                         <p style="margin: 0; color: #155724;">
@@ -470,6 +522,7 @@ class SiteOverlay_Pro {
     public function render_meta_box($post) {
         wp_nonce_field('siteoverlay_overlay_nonce', 'siteoverlay_overlay_nonce');
         
+        $license_status = $this->get_license_status();
         $overlay_url = get_post_meta($post->ID, '_siteoverlay_overlay_url', true);
         $is_active = !empty($overlay_url);
         ?>
@@ -481,10 +534,17 @@ class SiteOverlay_Pro {
             </div>
             
             <!-- Status Display -->
-            <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 8px; text-align: center; font-size: 12px;">
-                ✓ <strong>SiteOverlay Pro Active</strong><br>
-                👁 <?php echo get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: '0'; ?> views
-            </div>
+            <?php if ($license_status['features_enabled']): ?>
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 8px; text-align: center; font-size: 12px;">
+                    ✓ <strong>SiteOverlay Pro Active</strong><br>
+                    👁 <?php echo get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: '0'; ?> views
+                </div>
+            <?php else: ?>
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 8px; text-align: center; font-size: 12px;">
+                    🔒 <strong>License Required</strong><br>
+                    SiteOverlay Pro requires an active license
+                </div>
+            <?php endif; ?>
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
@@ -496,31 +556,40 @@ class SiteOverlay_Pro {
             </div>
             
             <!-- Current Overlay Section -->
-            <?php if ($is_active): ?>
-                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 12px; margin: 0;">
-                    <div style="color: #155724; font-weight: bold; margin-bottom: 8px;">✓ Overlay Active</div>
-                    <div style="color: #155724; font-size: 12px; margin-bottom: 8px;"><strong>Current URL:</strong></div>
-                    <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
-                           value="<?php echo esc_attr($overlay_url); ?>" 
-                           placeholder="https://example.com/" 
-                           style="width: 100%; padding: 4px; border: 1px solid #c3e6cb; background: white; font-size: 11px; margin-bottom: 8px;" />
-                    
-                    <div style="display: flex; gap: 5px;">
-                        <button type="button" class="button button-secondary" id="edit-overlay" style="font-size: 11px; padding: 2px 6px;">Edit</button>
-                        <button type="button" class="button button-secondary" id="preview-overlay" style="font-size: 11px; padding: 2px 6px;">Preview</button>
-                        <button type="button" class="button button-link-delete" id="remove-overlay" style="font-size: 11px; padding: 2px 6px;">Remove</button>
+            <?php if ($license_status['features_enabled']): ?>
+                <?php if ($is_active): ?>
+                    <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 12px; margin: 0;">
+                        <div style="color: #155724; font-weight: bold; margin-bottom: 8px;">✓ Overlay Active</div>
+                        <div style="color: #155724; font-size: 12px; margin-bottom: 8px;"><strong>Current URL:</strong></div>
+                        <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
+                               value="<?php echo esc_attr($overlay_url); ?>" 
+                               placeholder="https://example.com/" 
+                               style="width: 100%; padding: 4px; border: 1px solid #c3e6cb; background: white; font-size: 11px; margin-bottom: 8px;" />
+                        
+                        <div style="display: flex; gap: 5px;">
+                            <button type="button" class="button button-secondary" id="edit-overlay" style="font-size: 11px; padding: 2px 6px;">Edit</button>
+                            <button type="button" class="button button-secondary" id="preview-overlay" style="font-size: 11px; padding: 2px 6px;">Preview</button>
+                            <button type="button" class="button button-link-delete" id="remove-overlay" style="font-size: 11px; padding: 2px 6px;">Remove</button>
+                        </div>
                     </div>
-                </div>
+                <?php else: ?>
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
+                        <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">⚡ Add Overlay URL</div>
+                        <div style="color: #856404; font-size: 12px; margin-bottom: 8px;"><strong>Website to Overlay:</strong></div>
+                        <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
+                               value="" 
+                               placeholder="https://example.com/" 
+                               style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
+                        
+                        <button type="button" class="button button-primary" id="save-overlay" style="font-size: 11px; padding: 2px 6px; width: 100%;">Save Overlay</button>
+                    </div>
+                <?php endif; ?>
             <?php else: ?>
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
-                    <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">⚡ Add Overlay URL</div>
-                    <div style="color: #856404; font-size: 12px; margin-bottom: 8px;"><strong>Website to Overlay:</strong></div>
-                    <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
-                           value="" 
-                           placeholder="https://example.com/" 
-                           style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
-                    
-                    <button type="button" class="button button-primary" id="save-overlay" style="font-size: 11px; padding: 2px 6px; width: 100%;">Save Overlay</button>
+                <!-- 3. Overlay Functionality Control - Blocked when unlicensed -->
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; margin: 0;">
+                    <div style="color: #721c24; font-weight: bold; margin-bottom: 8px;">🔒 Overlay Functionality Locked</div>
+                    <div style="color: #721c24; font-size: 12px; margin-bottom: 8px;">Overlay functionality requires an active license</div>
+                    <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>" class="button button-primary" style="font-size: 11px; padding: 2px 6px; width: 100%;">Activate License</a>
                 </div>
             <?php endif; ?>
             
@@ -761,14 +830,15 @@ class SiteOverlay_Pro {
         $license_expiry = get_option('siteoverlay_license_expiry');
         $license_validated = get_option('siteoverlay_license_validated', false);
         
-        // Task 1: Proper State Detection
+        // 1. License State Detection - Required States
         if (!$license_key) {
             return array(
                 'state' => 'unlicensed',
                 'status' => 'inactive',
                 'message' => 'No license key found',
                 'expiry' => null,
-                'features_enabled' => false
+                'features_enabled' => false,
+                'days_remaining' => 0
             );
         }
         
@@ -779,39 +849,50 @@ class SiteOverlay_Pro {
                 'status' => 'pending',
                 'message' => 'License key exists but not validated',
                 'expiry' => null,
-                'features_enabled' => false
+                'features_enabled' => false,
+                'days_remaining' => 0
             );
         }
         
-        // Check if trial license is expired
+        // Check trial license states
         if ($license_status === 'trial') {
             $expiry_time = strtotime($license_expiry);
+            $days_remaining = 0;
+            
+            if ($expiry_time) {
+                $days_remaining = max(0, ceil(($expiry_time - time()) / (24 * 60 * 60)));
+            }
+            
             if ($expiry_time && $expiry_time < time()) {
                 return array(
-                    'state' => 'expired',
-                    'status' => 'expired',
+                    'state' => 'trial_expired',
+                    'status' => 'trial_expired',
                     'message' => 'Trial license has expired',
                     'expiry' => $license_expiry,
-                    'features_enabled' => false
+                    'features_enabled' => false,
+                    'days_remaining' => 0
                 );
             }
+            
             return array(
-                'state' => 'licensed',
-                'status' => 'trial',
+                'state' => 'trial_active',
+                'status' => 'trial_active',
                 'message' => 'Trial license active',
                 'expiry' => $license_expiry,
-                'features_enabled' => true
+                'features_enabled' => true,
+                'days_remaining' => $days_remaining
             );
         }
         
-        // Check if full license is active
-        if ($license_status && $license_validated) {
+        // Check paid license states
+        if ($license_status && $license_validated && $license_status !== 'trial') {
             return array(
                 'state' => 'licensed',
                 'status' => $license_status,
                 'message' => 'License active',
                 'expiry' => $license_expiry,
-                'features_enabled' => true
+                'features_enabled' => true,
+                'days_remaining' => null
             );
         }
         
@@ -821,13 +902,67 @@ class SiteOverlay_Pro {
             'status' => 'inactive',
             'message' => 'License not properly validated',
             'expiry' => null,
-            'features_enabled' => false
+            'features_enabled' => false,
+            'days_remaining' => 0
         );
     }
     
     public function is_licensed() {
         $license_status = $this->get_license_status();
         return $license_status['features_enabled'];
+    }
+    
+    public function is_trial_active() {
+        $license_status = $this->get_license_status();
+        return $license_status['state'] === 'trial_active';
+    }
+    
+    public function should_disable_trial_button() {
+        $license_status = $this->get_license_status();
+        return in_array($license_status['state'], ['trial_active', 'trial_expired', 'licensed']);
+    }
+    
+    public function display_admin_notices() {
+        // Only show on admin pages, not on the plugin settings page
+        if (isset($_GET['page']) && $_GET['page'] === 'siteoverlay-settings') {
+            return;
+        }
+        
+        $license_status = $this->get_license_status();
+        
+        switch ($license_status['state']) {
+            case 'unlicensed':
+                ?>
+                <div class="notice notice-warning is-dismissible">
+                    <p><strong>SiteOverlay Pro:</strong> Activate your license to use SiteOverlay Pro. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Activate Now</a></p>
+                </div>
+                <?php
+                break;
+                
+            case 'trial_active':
+                if ($license_status['days_remaining'] <= 7) {
+                    ?>
+                    <div class="notice notice-warning is-dismissible">
+                        <p><strong>SiteOverlay Pro:</strong> Trial expires in <?php echo $license_status['days_remaining']; ?> days! <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Upgrade Now</a></p>
+                    </div>
+                    <?php
+                } else {
+                    ?>
+                    <div class="notice notice-info is-dismissible">
+                        <p><strong>SiteOverlay Pro:</strong> Trial active - <?php echo $license_status['days_remaining']; ?> days remaining. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">View Details</a></p>
+                    </div>
+                    <?php
+                }
+                break;
+                
+            case 'trial_expired':
+                ?>
+                <div class="notice notice-error is-dismissible">
+                    <p><strong>SiteOverlay Pro:</strong> Trial expired - enter a paid license to continue. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Upgrade Now</a></p>
+                </div>
+                <?php
+                break;
+        }
     }
     
     public function display_overlay() {
