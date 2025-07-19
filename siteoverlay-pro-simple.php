@@ -34,7 +34,6 @@ define('SITEOVERLAY_RR_PLUGIN_PATH', plugin_dir_path(__FILE__));
 class SiteOverlay_Pro {
     
     private $license_manager;
-    private $site_tracker;
     private $is_licensed = null; // Cached license status for performance
     
     public function __construct() {
@@ -44,15 +43,6 @@ class SiteOverlay_Pro {
         
         // License manager (loads early for license checking)
         add_action('plugins_loaded', array($this, 'init_license_manager'), 5);
-        
-        // Site tracker (loads after license manager)
-        add_action('plugins_loaded', array($this, 'init_site_tracker'), 10);
-        
-        // Load site tracking migration (non-blocking) - only if file exists
-        $migration_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/site-tracking-migration.php';
-        if (file_exists($migration_file)) {
-            require_once $migration_file;
-        }
         
         // SACRED: EXACT overlay rendering mechanism from older plugin
         add_action('wp_head', array($this, 'display_overlay'), 1);
@@ -100,27 +90,6 @@ class SiteOverlay_Pro {
         
         // Cache license status for performance (no repeated checks)
         $this->is_licensed = $this->license_manager->has_valid_license();
-    }
-    
-    /**
-     * CONSTITUTIONAL COMPLIANCE: Initialize site tracker (enhancement module)
-     */
-    public function init_site_tracker() {
-        try {
-            if (!class_exists('SiteOverlay_Site_Tracker')) {
-                $site_tracker_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-site-tracker.php';
-                if (file_exists($site_tracker_file)) {
-                    require_once $site_tracker_file;
-                } else {
-                    // CONSTITUTIONAL RULE: Graceful degradation if file missing
-                    return;
-                }
-            }
-            $this->site_tracker = new SiteOverlay_Site_Tracker();
-        } catch (Exception $e) {
-            // CONSTITUTIONAL RULE: Never block plugin activation for site tracker issues
-            error_log('SiteOverlay: Site tracker initialization failed: ' . $e->getMessage());
-        }
     }
     
     /**
@@ -291,47 +260,26 @@ class SiteOverlay_Pro {
                     </a>
                 </p>
                 <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">
-                    New users can start a free 14-day trial with just name and email.
+                    <a href="https://siteoverlay.24hr.pro/" target="_blank">Learn more about SiteOverlay Pro</a>
                 </p>
             </div>
         </div>
         <?php
     }
     
-    /**
-     * CONSTITUTIONAL COMPLIANCE: Admin scripts enqueue
-     */
     public function admin_enqueue_scripts($hook) {
-        if (!in_array($hook, array('post.php', 'post-new.php'))) {
+        // Only load on post/page edit screens
+        if (!in_array($hook, array('post.php', 'post-new.php', 'page.php', 'page-new.php'))) {
             return;
         }
         
-        // Only load scripts if licensed (constitutional compliance: no resource waste)
-        if (!$this->is_licensed()) {
-            return;
-        }
-        
-        wp_enqueue_script(
-            'siteoverlay-admin',
-            SITEOVERLAY_RR_PLUGIN_URL . 'assets/js/admin.js',
-            array('jquery'),
-            SITEOVERLAY_RR_VERSION,
-            true
-        );
-        
+        wp_enqueue_script('siteoverlay-admin', SITEOVERLAY_RR_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), SITEOVERLAY_RR_VERSION, true);
         wp_localize_script('siteoverlay-admin', 'siteoverlay_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('siteoverlay_overlay_nonce'),
-            'post_id' => get_the_ID(),
-            'strings' => array(
-                'saving' => __('Saving...', 'siteoverlay-rr'),
-                'saved' => __('Saved successfully!', 'siteoverlay-rr'),
-                'error' => __('Error saving overlay URL', 'siteoverlay-rr'),
-                'removing' => __('Removing...', 'siteoverlay-rr'),
-                'removed' => __('Overlay removed successfully!', 'siteoverlay-rr'),
-                'confirm_remove' => __('Are you sure you want to remove this overlay?', 'siteoverlay-rr')
-            )
+            'nonce' => wp_create_nonce('siteoverlay_overlay_nonce')
         ));
+        
+        wp_enqueue_style('siteoverlay-admin', SITEOVERLAY_RR_PLUGIN_URL . 'assets/css/admin.css', array(), SITEOVERLAY_RR_VERSION);
     }
     
     /**
@@ -360,24 +308,24 @@ class SiteOverlay_Pro {
         $post_id = intval($_POST['post_id']);
         $overlay_url = esc_url_raw($_POST['overlay_url']);
         
-        if (empty($post_id) || empty($overlay_url)) {
-            wp_send_json_error('Invalid post ID or URL');
+        if (empty($post_id)) {
+            wp_send_json_error('Invalid post ID');
             return;
         }
         
-        // CONSTITUTIONAL RULE: Save data immediately without external dependencies
+        if (empty($overlay_url)) {
+            wp_send_json_error('Please enter a valid URL');
+            return;
+        }
+        
+        // CONSTITUTIONAL RULE: Save data immediately
         update_post_meta($post_id, '_siteoverlay_overlay_url', $overlay_url);
         update_post_meta($post_id, '_siteoverlay_overlay_updated', current_time('mysql'));
-        
-        // Track usage for license manager (background operation)
-        if ($this->license_manager) {
-            $this->license_manager->track_usage($post_id);
-        }
         
         // CONSTITUTIONAL RULE: Return success response immediately
         wp_send_json_success(array(
             'message' => 'Overlay saved successfully!',
-            'url' => $overlay_url
+            'overlay_url' => $overlay_url
         ));
     }
     
@@ -580,24 +528,4 @@ add_action('save_post', function($post_id) {
             delete_post_meta($post_id, '_siteoverlay_overlay_updated');
         }
     }
-});
-
-// Plugin activation/deactivation hooks
-register_activation_hook(__FILE__, 'siteoverlay_pro_activate');
-register_deactivation_hook(__FILE__, 'siteoverlay_pro_deactivate');
-
-function siteoverlay_pro_activate() {
-    // Initialize site tracker on activation
-    if (class_exists('SiteOverlay_Site_Tracker')) {
-        $site_tracker = new SiteOverlay_Site_Tracker();
-        $site_tracker->on_plugin_activation();
-    }
-}
-
-function siteoverlay_pro_deactivate() {
-    // Handle site tracker on deactivation
-    if (class_exists('SiteOverlay_Site_Tracker')) {
-        $site_tracker = new SiteOverlay_Site_Tracker();
-        $site_tracker->on_plugin_deactivation();
-    }
-}
+}); 

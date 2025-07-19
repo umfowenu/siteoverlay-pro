@@ -36,6 +36,10 @@ class SiteOverlay_License_Manager {
         add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
         add_action('wp_ajax_siteoverlay_deactivate_license', array($this, 'ajax_deactivate_license'));
         add_action('wp_ajax_siteoverlay_request_trial', array($this, 'ajax_request_trial'));
+        
+        // Site tracker integration (non-blocking)
+        add_action('wp_ajax_siteoverlay_get_usage_stats', array($this, 'ajax_get_usage_stats'));
+        add_action('wp_ajax_siteoverlay_check_site_limits', array($this, 'ajax_check_site_limits'));
     }
     
     /**
@@ -176,6 +180,207 @@ class SiteOverlay_License_Manager {
     }
     
     /**
+     * Get site usage statistics (non-blocking)
+     * CONSTITUTIONAL RULE: Information only, never blocks functionality
+     */
+    public function ajax_get_usage_stats() {
+        check_ajax_referer('siteoverlay_license_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $usage_stats = $this->get_site_usage_statistics();
+        wp_send_json_success($usage_stats);
+    }
+    
+    /**
+     * Check site limits (non-blocking)
+     * CONSTITUTIONAL RULE: Warnings only, never blocks functionality
+     */
+    public function ajax_check_site_limits() {
+        check_ajax_referer('siteoverlay_license_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $limit_info = $this->check_site_limits();
+        wp_send_json_success($limit_info);
+    }
+    
+    /**
+     * Get comprehensive site usage statistics
+     */
+    private function get_site_usage_statistics() {
+        global $wpdb;
+        
+        // Get site signature
+        $site_signature = get_option('siteoverlay_site_signature', '');
+        
+        // Get overlay count
+        $overlay_count = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->postmeta} 
+             WHERE meta_key = '_siteoverlay_overlay_url' 
+             AND meta_value != ''"
+        );
+        
+        // Get license information
+        $license_data = get_option('siteoverlay_license_data', array());
+        $license_type = isset($license_data['license_type']) ? $license_data['license_type'] : 'unlicensed';
+        
+        // Get site tracking information
+        $registration_status = get_option('siteoverlay_registration_status', 'unknown');
+        $last_tracked = get_option('siteoverlay_last_tracking', 'Never');
+        $last_heartbeat = get_option('siteoverlay_last_heartbeat', 'Never');
+        $heartbeat_status = get_option('siteoverlay_heartbeat_status', 'unknown');
+        
+        // Get heartbeat history
+        $heartbeat_history = get_option('siteoverlay_heartbeat_history', array());
+        $recent_heartbeats = array_slice($heartbeat_history, -5); // Last 5 heartbeats
+        
+        // Get site tracking record
+        $tracking_record = null;
+        if (!empty($site_signature)) {
+            $tracking_record = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}siteoverlay_sites WHERE site_signature = %s",
+                    $site_signature
+                )
+            );
+        }
+        
+        return array(
+            'site_signature' => $site_signature,
+            'overlay_count' => intval($overlay_count),
+            'license_type' => $license_type,
+            'registration_status' => $registration_status,
+            'last_tracked' => $last_tracked,
+            'last_heartbeat' => $last_heartbeat,
+            'heartbeat_status' => $heartbeat_status,
+            'tracking_record' => $tracking_record,
+            'recent_heartbeats' => $recent_heartbeats,
+            'site_limits' => $this->get_site_limits_info($license_type, $overlay_count)
+        );
+    }
+    
+    /**
+     * Check site limits and return information
+     */
+    private function check_site_limits() {
+        $license_data = get_option('siteoverlay_license_data', array());
+        $license_type = isset($license_data['license_type']) ? $license_data['license_type'] : 'unlicensed';
+        
+        global $wpdb;
+        $overlay_count = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->postmeta} 
+             WHERE meta_key = '_siteoverlay_overlay_url' 
+             AND meta_value != ''"
+        );
+        
+        $limits = $this->get_site_limits_info($license_type, $overlay_count);
+        
+        return array(
+            'license_type' => $license_type,
+            'current_usage' => intval($overlay_count),
+            'limits' => $limits,
+            'warnings' => $this->generate_limit_warnings($license_type, $overlay_count)
+        );
+    }
+    
+    /**
+     * Get site limits information
+     */
+    private function get_site_limits_info($license_type, $overlay_count) {
+        $limits = array(
+            'max_sites' => 0,
+            'current_usage' => intval($overlay_count),
+            'usage_percentage' => 0,
+            'unlimited' => false
+        );
+        
+        switch ($license_type) {
+            case 'trial':
+                $limits['max_sites'] = 3;
+                $limits['unlimited'] = false;
+                break;
+            case 'professional':
+                $limits['max_sites'] = 5;
+                $limits['unlimited'] = false;
+                break;
+            case 'annual':
+            case 'lifetime':
+                $limits['max_sites'] = 0;
+                $limits['unlimited'] = true;
+                break;
+            default:
+                $limits['max_sites'] = 0;
+                $limits['unlimited'] = false;
+        }
+        
+        if (!$limits['unlimited'] && $limits['max_sites'] > 0) {
+            $limits['usage_percentage'] = round(($limits['current_usage'] / $limits['max_sites']) * 100, 2);
+        }
+        
+        return $limits;
+    }
+    
+    /**
+     * Generate limit warnings (informational only)
+     */
+    private function generate_limit_warnings($license_type, $overlay_count) {
+        $warnings = array();
+        
+        switch ($license_type) {
+            case 'trial':
+                if ($overlay_count >= 3) {
+                    $warnings[] = array(
+                        'type' => 'warning',
+                        'message' => 'You have reached the trial limit of 3 overlays. Consider upgrading to continue using more overlays.',
+                        'action' => 'upgrade'
+                    );
+                } elseif ($overlay_count >= 2) {
+                    $warnings[] = array(
+                        'type' => 'info',
+                        'message' => 'You have used ' . $overlay_count . ' of 3 trial overlays.',
+                        'action' => 'monitor'
+                    );
+                }
+                break;
+                
+            case 'professional':
+                if ($overlay_count >= 5) {
+                    $warnings[] = array(
+                        'type' => 'warning',
+                        'message' => 'You have reached the Professional plan limit of 5 overlays. Consider upgrading to Annual or Lifetime for unlimited overlays.',
+                        'action' => 'upgrade'
+                    );
+                } elseif ($overlay_count >= 4) {
+                    $warnings[] = array(
+                        'type' => 'info',
+                        'message' => 'You have used ' . $overlay_count . ' of 5 Professional overlays.',
+                        'action' => 'monitor'
+                    );
+                }
+                break;
+                
+            case 'annual':
+            case 'lifetime':
+                // No warnings for unlimited plans
+                break;
+                
+            default:
+                $warnings[] = array(
+                    'type' => 'info',
+                    'message' => 'No active license detected. Overlay functionality may be limited.',
+                    'action' => 'license'
+                );
+        }
+        
+        return $warnings;
+    }
+    
+    /**
      * FIXED: Email-based trial request - DO NOT RETURN LICENSE KEY
      */
     public function ajax_request_trial() {
@@ -230,12 +435,8 @@ class SiteOverlay_License_Manager {
         
         if ($response_code === 200 && $data && isset($data['success'])) {
             if ($data['success']) {
-                // FIXED: Do NOT return license key - force email verification
                 wp_send_json_success(array(
-                    'message' => 'Trial license has been sent to your email address. Please check your inbox and enter the license key below to activate your 14-day trial.',
-                    'email' => $email,
-                    'full_name' => $full_name,
-                    // REMOVED: 'license_key' => $data['data']['license_key'] ?? null
+                    'message' => 'Trial sent to email. Check inbox.'
                 ));
             } else {
                 wp_send_json_error($data['message']);
@@ -412,7 +613,7 @@ class SiteOverlay_License_Manager {
                                        id="license_key" 
                                        value="<?php echo esc_attr($license_key); ?>" 
                                        style="width: 100%; max-width: 500px; padding: 10px; font-family: monospace; font-size: 14px; border: 1px solid #ddd; border-radius: 4px;" 
-                                       placeholder="TRIAL-XXXX-XXXX-XXXX or PRO-XXXX-XXXX-XXXX or LIFE-XXXX-XXXX-XXXX" 
+                                       placeholder="TRIAL-XXXX-XXXX-XXXX or PRO-XXXX-XXXX-XXXX or ANN-XXXX-XXXX-XXXX or LIFE-XXXX-XXXX-XXXX" 
                                        <?php echo $is_licensed ? 'readonly' : ''; ?> />
                                        
                                 <?php if ($is_licensed): ?>
@@ -499,6 +700,28 @@ class SiteOverlay_License_Manager {
                     </div>
                 </div>
             <?php endif; ?>
+            
+            <!-- SITE USAGE AND TRACKING INFORMATION -->
+            <div style="background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                <h2 style="margin-top: 0;">📊 Site Usage & Tracking</h2>
+                
+                <div id="usage-stats-container">
+                    <div style="text-align: center; padding: 20px;">
+                        <div class="spinner is-active" style="float: none; margin: 0 auto;"></div>
+                        <p>Loading usage statistics...</p>
+                    </div>
+                </div>
+                
+                <div id="site-limits-container" style="margin-top: 20px;">
+                    <h3>Site Limits & Warnings</h3>
+                    <div id="limits-content">
+                        <div style="text-align: center; padding: 10px;">
+                            <div class="spinner is-active" style="float: none; margin: 0 auto; width: 20px; height: 20px;"></div>
+                            <p>Checking site limits...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <!-- SYSTEM INFORMATION WITH eBiz360 BRANDING -->
             <div style="background: #f9f9f9; border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 4px;">
@@ -758,9 +981,162 @@ class SiteOverlay_License_Manager {
                     }
                 });
             }
+            
+            // Load usage statistics
+            function loadUsageStats() {
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'siteoverlay_get_usage_stats',
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_license_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            displayUsageStats(response.data);
+                        } else {
+                            $('#usage-stats-container').html('<div class="notice notice-error"><p>Error loading usage statistics: ' + response.data + '</p></div>');
+                        }
+                    },
+                    error: function() {
+                        $('#usage-stats-container').html('<div class="notice notice-error"><p>Failed to load usage statistics. Please try refreshing the page.</p></div>');
+                    }
+                });
+            }
+            
+            // Display usage statistics
+            function displayUsageStats(data) {
+                var html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+                
+                // Site signature
+                html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">';
+                html += '<h4 style="margin: 0 0 10px 0;">Site Signature</h4>';
+                html += '<p style="margin: 0; font-family: monospace; font-size: 12px;">' + (data.site_signature ? data.site_signature.substring(0, 16) + '...' : 'Not generated') + '</p>';
+                html += '</div>';
+                
+                // Overlay count
+                html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">';
+                html += '<h4 style="margin: 0 0 10px 0;">Active Overlays</h4>';
+                html += '<p style="margin: 0; font-size: 24px; font-weight: bold; color: #0073aa;">' + data.overlay_count + '</p>';
+                html += '</div>';
+                
+                // License type
+                html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">';
+                html += '<h4 style="margin: 0 0 10px 0;">License Type</h4>';
+                html += '<p style="margin: 0;">' + data.license_type.charAt(0).toUpperCase() + data.license_type.slice(1) + '</p>';
+                html += '</div>';
+                
+                // Registration status
+                html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">';
+                html += '<h4 style="margin: 0 0 10px 0;">Registration</h4>';
+                html += '<p style="margin: 0;">' + data.registration_status.charAt(0).toUpperCase() + data.registration_status.slice(1) + '</p>';
+                html += '</div>';
+                
+                // Last tracked
+                html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">';
+                html += '<h4 style="margin: 0 0 10px 0;">Last Tracked</h4>';
+                html += '<p style="margin: 0;">' + (data.last_tracked !== 'Never' ? data.last_tracked : 'Never') + '</p>';
+                html += '</div>';
+                
+                // Last heartbeat
+                html += '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">';
+                html += '<h4 style="margin: 0 0 10px 0;">Last Heartbeat</h4>';
+                html += '<p style="margin: 0;">' + (data.last_heartbeat !== 'Never' ? data.last_heartbeat : 'Never') + '</p>';
+                html += '</div>';
+                
+                html += '</div>';
+                
+                // Site limits info
+                if (data.site_limits) {
+                    html += '<div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 4px;">';
+                    html += '<h4 style="margin: 0 0 10px 0;">Site Limits</h4>';
+                    
+                    if (data.site_limits.unlimited) {
+                        html += '<p style="margin: 0; color: #28a745;"><strong>✅ Unlimited Plan:</strong> No overlay limits</p>';
+                    } else {
+                        var percentage = data.site_limits.usage_percentage;
+                        var color = percentage >= 90 ? '#dc3545' : percentage >= 75 ? '#ffc107' : '#28a745';
+                        
+                        html += '<p style="margin: 0;"><strong>Usage:</strong> ' + data.site_limits.current_usage + ' / ' + data.site_limits.max_sites + ' overlays</p>';
+                        html += '<div style="background: #ddd; height: 20px; border-radius: 10px; margin: 10px 0; overflow: hidden;">';
+                        html += '<div style="background: ' + color + '; height: 100%; width: ' + Math.min(percentage, 100) + '%; transition: width 0.3s;"></div>';
+                        html += '</div>';
+                        html += '<p style="margin: 0; font-size: 12px; color: #666;">' + percentage + '% used</p>';
+                    }
+                    html += '</div>';
+                }
+                
+                $('#usage-stats-container').html(html);
+            }
+            
+            // Load site limits
+            function loadSiteLimits() {
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'siteoverlay_check_site_limits',
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_license_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            displaySiteLimits(response.data);
+                        } else {
+                            $('#limits-content').html('<div class="notice notice-error"><p>Error checking site limits: ' + response.data + '</p></div>');
+                        }
+                    },
+                    error: function() {
+                        $('#limits-content').html('<div class="notice notice-error"><p>Failed to check site limits. Please try refreshing the page.</p></div>');
+                    }
+                });
+            }
+            
+            // Display site limits
+            function displaySiteLimits(data) {
+                var html = '';
+                
+                if (data.warnings && data.warnings.length > 0) {
+                    data.warnings.forEach(function(warning) {
+                        var noticeClass = warning.type === 'warning' ? 'notice-warning' : 'notice-info';
+                        var icon = warning.type === 'warning' ? '⚠️' : 'ℹ️';
+                        
+                        html += '<div class="notice ' + noticeClass + ' inline" style="margin: 10px 0;">';
+                        html += '<p><strong>' + icon + ' ' + warning.message + '</strong></p>';
+                        
+                        if (warning.action === 'upgrade') {
+                            html += '<p><a href="https://siteoverlay.24hr.pro/?plan=upgrade" class="button button-primary" target="_blank">Upgrade Now</a></p>';
+                        }
+                        html += '</div>';
+                    });
+                } else {
+                    html += '<div class="notice notice-success inline" style="margin: 10px 0;">';
+                    html += '<p><strong>✅ All Good!</strong> Your current usage is within your plan limits.</p>';
+                    html += '</div>';
+                }
+                
+                // Add usage summary
+                html += '<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">';
+                html += '<p style="margin: 0;"><strong>Current Usage:</strong> ' + data.current_usage + ' overlays</p>';
+                if (!data.limits.unlimited) {
+                    html += '<p style="margin: 0;"><strong>Plan Limit:</strong> ' + data.limits.max_sites + ' overlays</p>';
+                } else {
+                    html += '<p style="margin: 0;"><strong>Plan Limit:</strong> Unlimited</p>';
+                }
+                html += '</div>';
+                
+                $('#limits-content').html(html);
+            }
+            
+            // Load data on page load
+            loadUsageStats();
+            loadSiteLimits();
         });
         </script>
+        
         <?php
+        // Hook for additional license page content (like site usage stats)
+        do_action('siteoverlay_license_page_content');
+        ?>
     }
     
     private function render_license_status($license_data, $is_licensed) {
@@ -835,7 +1211,7 @@ class SiteOverlay_License_Manager {
     /**
      * Get license key
      */
-    private function get_license_key() {
+    public function get_license_key() {
         return get_option($this->license_key_option, '');
     }
     
