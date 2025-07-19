@@ -617,21 +617,17 @@ class SiteOverlay_Pro {
     }
     
     public function add_meta_boxes() {
-        // Only add meta boxes if user has active license
-        $license_status = $this->get_license_status();
-        
-        if ($license_status['features_enabled']) {
-            $post_types = array('post', 'page');
-            foreach ($post_types as $post_type) {
-                add_meta_box(
-                    'siteoverlay-meta-box',
-                    'SiteOverlay Pro - Overlay Settings',
-                    array($this, 'render_meta_box'),
-                    $post_type,
-                    'side',
-                    'high'
-                );
-            }
+        // ALWAYS add meta boxes - content changes based on license status
+        $post_types = array('post', 'page');
+        foreach ($post_types as $post_type) {
+            add_meta_box(
+                'siteoverlay-meta-box',
+                'SiteOverlay Pro - Overlay Settings',
+                array($this, 'render_meta_box'),
+                $post_type,
+                'side',
+                'high'
+            );
         }
     }
     
@@ -639,10 +635,86 @@ class SiteOverlay_Pro {
         wp_nonce_field('siteoverlay_overlay_nonce', 'siteoverlay_overlay_nonce');
         
         $license_status = $this->get_license_status();
+        
+        if ($license_status['features_enabled']) {
+            // LICENSED STATE: Show full overlay functionality
+            $this->render_licensed_meta_box($post);
+        } else {
+            // UNLICENSED STATE: Show disabled message with trial/purchase options
+            $this->render_unlicensed_meta_box($post);
+        }
+    }
+    
+    private function render_unlicensed_meta_box($post) {
+        ?>
+        <div id="siteoverlay-overlay-container">
+            <!-- Logo Section -->
+            <div style="text-align: center; padding: 10px 0; background: white;">
+                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+            </div>
+            
+            <!-- Disabled State Message -->
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; margin: 0; text-align: center;">
+                <div style="color: #721c24; font-weight: bold; margin-bottom: 10px;">🔒 Plugin Disabled</div>
+                <div style="color: #721c24; font-size: 12px; margin-bottom: 15px;">
+                    Overlay functionality requires an active license.<br>
+                    Start a free trial or purchase a license to begin creating overlays.
+                </div>
+                
+                <!-- Trial/Purchase Options -->
+                <div style="margin-bottom: 10px;">
+                    <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>" 
+                       class="button button-primary" style="font-size: 11px; padding: 4px 8px; margin: 2px;">
+                       🚀 Start Free Trial
+                    </a>
+                </div>
+                
+                <div style="margin-bottom: 10px;">
+                    <a href="https://siteoverlay.24hr.pro/?plan=professional" 
+                       target="_blank" class="button button-secondary" style="font-size: 11px; padding: 4px 8px; margin: 2px;">
+                       $35/month
+                    </a>
+                    <a href="https://siteoverlay.24hr.pro/?plan=annual" 
+                       target="_blank" class="button button-secondary" style="font-size: 11px; padding: 4px 8px; margin: 2px;">
+                       $197/year
+                    </a>
+                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" 
+                       target="_blank" class="button button-secondary" style="font-size: 11px; padding: 4px 8px; margin: 2px;">
+                       $297 lifetime
+                    </a>
+                </div>
+                
+                <div style="font-size: 10px; color: #721c24; margin-top: 10px;">
+                    <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>" style="color: #721c24;">
+                        Already have a license? Activate it here →
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Xagio Affiliate Section -->
+            <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
+                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
+                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
+            </div>
+            
+            <!-- Email Newsletter Section -->
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
+                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
+                <input type="email" id="newsletter-email" placeholder="Enter your email" 
+                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
+                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
+            </div>
+        </div>
+        <?php
+    }
+    
+    private function render_licensed_meta_box($post) {
         $overlay_url = get_post_meta($post->ID, '_siteoverlay_overlay_url', true);
         $is_active = !empty($overlay_url);
         ?>
-        
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
@@ -650,17 +722,10 @@ class SiteOverlay_Pro {
             </div>
             
             <!-- Status Display -->
-            <?php if ($license_status['features_enabled']): ?>
-                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 8px; text-align: center; font-size: 12px;">
-                    ✓ <strong>SiteOverlay Pro Active</strong><br>
-                    👁 <?php echo get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: '0'; ?> views
-                </div>
-            <?php else: ?>
-                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 8px; text-align: center; font-size: 12px;">
-                    🔒 <strong>License Required</strong><br>
-                    SiteOverlay Pro requires an active license
-                </div>
-            <?php endif; ?>
+            <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 8px; text-align: center; font-size: 12px;">
+                ✓ <strong>SiteOverlay Pro Active</strong><br>
+                👁 <?php echo get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: '0'; ?> views
+            </div>
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
@@ -672,40 +737,31 @@ class SiteOverlay_Pro {
             </div>
             
             <!-- Current Overlay Section -->
-            <?php if ($license_status['features_enabled']): ?>
-                <?php if ($is_active): ?>
-                    <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 12px; margin: 0;">
-                        <div style="color: #155724; font-weight: bold; margin-bottom: 8px;">✓ Overlay Active</div>
-                        <div style="color: #155724; font-size: 12px; margin-bottom: 8px;"><strong>Current URL:</strong></div>
-                        <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
-                               value="<?php echo esc_attr($overlay_url); ?>" 
-                               placeholder="https://example.com/" 
-                               style="width: 100%; padding: 4px; border: 1px solid #c3e6cb; background: white; font-size: 11px; margin-bottom: 8px;" />
-                        
-                        <div style="display: flex; gap: 5px;">
-                            <button type="button" class="button button-secondary" id="edit-overlay" style="font-size: 11px; padding: 2px 6px;">Edit</button>
-                            <button type="button" class="button button-secondary" id="preview-overlay" style="font-size: 11px; padding: 2px 6px;">Preview</button>
-                            <button type="button" class="button button-link-delete" id="remove-overlay" style="font-size: 11px; padding: 2px 6px;">Remove</button>
-                        </div>
+            <?php if ($is_active): ?>
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 12px; margin: 0;">
+                    <div style="color: #155724; font-weight: bold; margin-bottom: 8px;">✓ Overlay Active</div>
+                    <div style="color: #155724; font-size: 12px; margin-bottom: 8px;"><strong>Current URL:</strong></div>
+                    <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
+                           value="<?php echo esc_attr($overlay_url); ?>" 
+                           placeholder="https://example.com/" 
+                           style="width: 100%; padding: 4px; border: 1px solid #c3e6cb; background: white; font-size: 11px; margin-bottom: 8px;" />
+                    
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="button button-secondary" id="edit-overlay" style="font-size: 11px; padding: 2px 6px;">Edit</button>
+                        <button type="button" class="button button-secondary" id="preview-overlay" style="font-size: 11px; padding: 2px 6px;">Preview</button>
+                        <button type="button" class="button button-link-delete" id="remove-overlay" style="font-size: 11px; padding: 2px 6px;">Remove</button>
                     </div>
-                <?php else: ?>
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
-                        <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">⚡ Add Overlay URL</div>
-                        <div style="color: #856404; font-size: 12px; margin-bottom: 8px;"><strong>Website to Overlay:</strong></div>
-                        <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
-                               value="" 
-                               placeholder="https://example.com/" 
-                               style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
-                        
-                        <button type="button" class="button button-primary" id="save-overlay" style="font-size: 11px; padding: 2px 6px; width: 100%;">Save Overlay</button>
-                    </div>
-                <?php endif; ?>
+                </div>
             <?php else: ?>
-                <!-- 3. Overlay Functionality Control - Blocked when unlicensed -->
-                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 12px; margin: 0;">
-                    <div style="color: #721c24; font-weight: bold; margin-bottom: 8px;">🔒 Overlay Functionality Locked</div>
-                    <div style="color: #721c24; font-size: 12px; margin-bottom: 8px;">Overlay functionality requires an active license</div>
-                    <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>" class="button button-primary" style="font-size: 11px; padding: 2px 6px; width: 100%;">Activate License</a>
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
+                    <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">⚡ Add Overlay URL</div>
+                    <div style="color: #856404; font-size: 12px; margin-bottom: 8px;"><strong>Website to Overlay:</strong></div>
+                    <input type="url" id="siteoverlay-overlay-url" name="siteoverlay_overlay_url" 
+                           value="" 
+                           placeholder="https://example.com/" 
+                           style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
+                    
+                    <button type="button" class="button button-primary" id="save-overlay" style="font-size: 11px; padding: 2px 6px; width: 100%;">Save Overlay</button>
                 </div>
             <?php endif; ?>
             
