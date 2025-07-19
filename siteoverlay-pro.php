@@ -127,6 +127,19 @@ class SiteOverlay_Pro {
         <div class="wrap">
             <h1>SiteOverlay Pro Settings</h1>
             
+            <!-- DEBUG: Show current license status -->
+            <?php
+            echo '<div style="background: red; color: white; padding: 10px; margin: 10px 0; border-radius: 5px;">';
+            echo '<strong>DEBUG INFO:</strong><br>';
+            echo 'License Status State: ' . $license_status['state'] . '<br>';
+            echo 'Features Enabled: ' . ($license_status['features_enabled'] ? 'YES' : 'NO') . '<br>';
+            echo 'is_licensed(): ' . ($this->is_licensed() ? 'YES' : 'NO') . '<br>';
+            echo 'License Key: ' . (get_option('siteoverlay_license_key') ?: 'NONE') . '<br>';
+            echo 'License Status: ' . (get_option('siteoverlay_license_status') ?: 'NONE') . '<br>';
+            echo 'License Validated: ' . (get_option('siteoverlay_license_validated') ? 'YES' : 'NO') . '<br>';
+            echo '</div>';
+            ?>
+            
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
                 <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
@@ -134,10 +147,17 @@ class SiteOverlay_Pro {
             
             <!-- Status Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <?php if ($license_status['features_enabled']): ?>
                 <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px;">
                     <h3 style="margin: 0 0 10px 0; color: #155724;">✓ Plugin Active</h3>
                     <p style="margin: 0; color: #155724;">SiteOverlay Pro is running successfully</p>
                 </div>
+                <?php else: ?>
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px;">
+                    <h3 style="margin: 0 0 10px 0; color: #721c24;">🔒 License Required</h3>
+                    <p style="margin: 0; color: #721c24;">Activate your license to use SiteOverlay Pro</p>
+                </div>
+                <?php endif; ?>
                 
                 <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px;">
                     <h3 style="margin: 0 0 10px 0; color: #0c5460;">📊 Usage Statistics</h3>
@@ -204,6 +224,31 @@ class SiteOverlay_Pro {
                             </div>
                             
                             <button type="button" class="button button-primary" id="validate-license">Activate License</button>
+                        </div>
+                        
+                        <!-- Purchase Options for Unlicensed Users -->
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                            <h4 style="margin: 0 0 15px 0; color: #856404;">🚀 Or Purchase a License</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Professional</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$35/month</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Up to 5 websites</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary">Get Professional</a>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Annual Unlimited</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$197/year</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
+                                </div>
+                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
+                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Lifetime</h5>
+                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$297</p>
+                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">One-time payment</p>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" target="_blank" class="button button-primary">Get Lifetime</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
