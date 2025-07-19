@@ -39,12 +39,12 @@ class SiteOverlay_Pro {
             add_action('admin_init', array($this, 'admin_init'));
             add_action('admin_menu', array($this, 'add_admin_menu'));
             
-            // Task 3: Feature Gating - Only show meta boxes and overlay functionality when licensed
+            // ALWAYS add meta boxes - content changes based on license status
+            add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
+            add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
+            
+            // AJAX handlers for overlay functionality - only when licensed
             if ($this->is_licensed()) {
-                add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
-                add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
-                
-                // AJAX handlers for overlay functionality
                 add_action('wp_ajax_siteoverlay_save_url', array($this, 'ajax_save_overlay'));
                 add_action('wp_ajax_siteoverlay_remove_url', array($this, 'ajax_remove_overlay'));
                 add_action('wp_ajax_siteoverlay_preview_url', array($this, 'ajax_preview_overlay'));
