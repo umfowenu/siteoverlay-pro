@@ -127,18 +127,7 @@ class SiteOverlay_Pro {
         <div class="wrap">
             <h1>SiteOverlay Pro Settings</h1>
             
-            <!-- DEBUG: Show current license status -->
-            <?php
-            echo '<div style="background: red; color: white; padding: 10px; margin: 10px 0; border-radius: 5px;">';
-            echo '<strong>DEBUG INFO:</strong><br>';
-            echo 'License Status State: ' . $license_status['state'] . '<br>';
-            echo 'Features Enabled: ' . ($license_status['features_enabled'] ? 'YES' : 'NO') . '<br>';
-            echo 'is_licensed(): ' . ($this->is_licensed() ? 'YES' : 'NO') . '<br>';
-            echo 'License Key: ' . (get_option('siteoverlay_license_key') ?: 'NONE') . '<br>';
-            echo 'License Status: ' . (get_option('siteoverlay_license_status') ?: 'NONE') . '<br>';
-            echo 'License Validated: ' . (get_option('siteoverlay_license_validated') ? 'YES' : 'NO') . '<br>';
-            echo '</div>';
-            ?>
+
             
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
@@ -1139,6 +1128,24 @@ class SiteOverlay_Pro {
         }
     }
     
+    public function test_file_permissions() {
+        $test_file = plugin_dir_path(__FILE__) . 'test.txt';
+        
+        // Try to write
+        if (file_put_contents($test_file, 'test') === false) {
+            error_log('SiteOverlay: Cannot write files');
+            return false;
+        }
+        
+        // Try to delete
+        if (!unlink($test_file)) {
+            error_log('SiteOverlay: Cannot delete files');
+            return false;
+        }
+        
+        return true;
+    }
+    
     public function display_overlay() {
         // Only run on frontend single posts/pages
         if (is_admin() || !is_singular()) return;
@@ -1182,6 +1189,70 @@ class SiteOverlay_Pro {
 
 // Initialize the plugin
 new SiteOverlay_Pro();
+
+// Register activation hook
+register_activation_hook(__FILE__, 'siteoverlay_pro_activate');
+
+// Register deactivation hook
+register_deactivation_hook(__FILE__, 'siteoverlay_pro_deactivate');
+
+// Register uninstall hook
+register_uninstall_hook(__FILE__, 'siteoverlay_pro_uninstall');
+
+// Activation function
+function siteoverlay_pro_activate() {
+    // Set default options if they don't exist
+    if (!get_option('siteoverlay_license_status')) {
+        update_option('siteoverlay_license_status', 'inactive');
+    }
+    
+    // Clear any existing scheduled events
+    wp_clear_scheduled_hook('siteoverlay_daily_heartbeat');
+    
+    // Flush rewrite rules
+    flush_rewrite_rules();
+}
+
+// Deactivation function
+function siteoverlay_pro_deactivate() {
+    // Clear scheduled events
+    wp_clear_scheduled_hook('siteoverlay_daily_heartbeat');
+    
+    // Clear transients
+    delete_transient('siteoverlay_site_registered');
+    delete_transient('siteoverlay_usage_stats');
+    delete_transient('siteoverlay_license_last_check');
+    
+    // Flush rewrite rules
+    flush_rewrite_rules();
+}
+
+// Uninstall function
+function siteoverlay_pro_uninstall() {
+    // Clear all scheduled cron jobs
+    wp_clear_scheduled_hook('siteoverlay_daily_heartbeat');
+    
+    // Clear all transients
+    delete_transient('siteoverlay_site_registered');
+    delete_transient('siteoverlay_usage_stats');
+    delete_transient('siteoverlay_license_last_check');
+    
+    // Optional: Remove all plugin data (commented out for safety)
+    // delete_option('siteoverlay_license_key');
+    // delete_option('siteoverlay_license_data');
+    // delete_option('siteoverlay_license_status');
+    // delete_option('siteoverlay_registration_name');
+    // delete_option('siteoverlay_registration_email');
+    // delete_option('siteoverlay_registration_date');
+    // delete_option('siteoverlay_license_expiry');
+    // delete_option('siteoverlay_license_validated');
+    
+    // Remove all post meta related to overlays
+    global $wpdb;
+    $wpdb->delete($wpdb->postmeta, array('meta_key' => '_siteoverlay_overlay_url'));
+    $wpdb->delete($wpdb->postmeta, array('meta_key' => '_siteoverlay_overlay_views'));
+    $wpdb->delete($wpdb->postmeta, array('meta_key' => '_siteoverlay_overlay_updated'));
+}
 
 // Newsletter signup AJAX handler
 add_action('wp_ajax_siteoverlay_newsletter_signup', function() {
