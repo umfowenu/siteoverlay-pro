@@ -438,19 +438,41 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_trial_license',
-                    full_name: fullName,
-                    email: email,
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                // CONSTITUTIONAL RULE: Non-blocking with timeout
+                var $btn = $(this);
+                var originalText = $btn.text();
+                $btn.text('Submitting...').prop('disabled', true);
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    timeout: 5000, // 5 second timeout as per constitutional rules
+                    data: {
+                        action: 'siteoverlay_trial_license',
+                        full_name: fullName,
+                        email: email,
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // CONSTITUTIONAL RULE: Graceful degradation
+                        if (status === 'timeout') {
+                            $('#license-response').html('<div class="notice notice-warning"><p>Registration submitted! Please check your email for your trial license key.</p></div>');
+                        } else {
+                            $('#license-response').html('<div class="notice notice-error"><p>Connection error: ' + error + '</p></div>');
+                        }
+                    },
+                    complete: function() {
+                        $btn.text(originalText).prop('disabled', false);
                     }
                 });
             });
@@ -462,18 +484,40 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_validate_license',
-                    license_key: licenseKey,
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                // CONSTITUTIONAL RULE: Non-blocking with timeout
+                var $btn = $(this);
+                var originalText = $btn.text();
+                $btn.text('Validating...').prop('disabled', true);
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    timeout: 5000, // 5 second timeout as per constitutional rules
+                    data: {
+                        action: 'siteoverlay_validate_license',
+                        license_key: licenseKey,
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // CONSTITUTIONAL RULE: Graceful degradation
+                        if (status === 'timeout') {
+                            $('#license-response').html('<div class="notice notice-warning"><p>License validation timed out. Please try again.</p></div>');
+                        } else {
+                            $('#license-response').html('<div class="notice notice-error"><p>Connection error: ' + error + '</p></div>');
+                        }
+                    },
+                    complete: function() {
+                        $btn.text(originalText).prop('disabled', false);
                     }
                 });
             });
@@ -485,18 +529,40 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_validate_license',
-                    license_key: licenseKey,
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                // CONSTITUTIONAL RULE: Non-blocking with timeout
+                var $btn = $(this);
+                var originalText = $btn.text();
+                $btn.text('Validating...').prop('disabled', true);
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    timeout: 5000, // 5 second timeout as per constitutional rules
+                    data: {
+                        action: 'siteoverlay_validate_license',
+                        license_key: licenseKey,
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // CONSTITUTIONAL RULE: Graceful degradation
+                        if (status === 'timeout') {
+                            $('#license-response').html('<div class="notice notice-warning"><p>License validation timed out. Please try again.</p></div>');
+                        } else {
+                            $('#license-response').html('<div class="notice notice-error"><p>Connection error: ' + error + '</p></div>');
+                        }
+                    },
+                    complete: function() {
+                        $btn.text(originalText).prop('disabled', false);
                     }
                 });
             });
@@ -751,8 +817,9 @@ class SiteOverlay_Pro {
         update_option('siteoverlay_registration_date', current_time('mysql'));
         
         // Send registration to server (this would be your Pabbly integration)
+        // CONSTITUTIONAL RULE: Non-blocking with short timeout
         $response = wp_remote_post('https://your-server.com/api/trial-registration', array(
-            'timeout' => 10,
+            'timeout' => 5, // Short timeout as per constitutional rules
             'body' => array(
                 'full_name' => $full_name,
                 'email' => $email,
@@ -761,8 +828,9 @@ class SiteOverlay_Pro {
             )
         ));
         
+        // CONSTITUTIONAL RULE: Graceful degradation - always succeed even if server is down
         if (is_wp_error($response)) {
-            // If server is down, still show success message
+            // Server is down or timeout - still show success message
             wp_send_json_success(array(
                 'message' => 'Registration submitted successfully! Please check your email for your trial license key.',
                 'status' => 'registered'
