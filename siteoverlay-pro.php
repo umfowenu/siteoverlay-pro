@@ -489,17 +489,32 @@ class SiteOverlay_Pro {
                     },
                     success: function(response) {
                         if (response.success) {
+                            // Show success alert
                             var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
+                            alert('✅ SUCCESS: ' + response.data.message + debugInfo);
+                            
+                            // Update button text
+                            $('#request-trial-btn').text('Trial Submitted Successfully!').prop('disabled', true);
+                            
+                            // Also show in page
                             $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>');
                             setTimeout(function() {
                                 location.reload();
                             }, 2000);
                         } else {
+                            // Show error alert
                             var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
+                            alert('❌ ERROR: ' + response.data.message + debugInfo);
+                            
+                            // Also show in page
                             $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>');
                         }
                     },
                     error: function(xhr, status, error) {
+                        // Show error alert
+                        var errorMsg = 'Connection error: ' + error + '\nStatus: ' + status + '\nResponse: ' + xhr.responseText;
+                        alert('❌ AJAX ERROR: ' + errorMsg);
+                        
                         // CONSTITUTIONAL RULE: Graceful degradation
                         if (status === 'timeout') {
                             $('#license-response').html('<div class="notice notice-warning"><p>Registration submitted! Please check your email for your trial license key.</p></div>');
