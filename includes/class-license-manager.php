@@ -416,6 +416,11 @@ class SiteOverlay_License_Manager {
             'requestSource' => 'plugin_admin'
         );
         
+        // Log the request data being sent (on-screen debug)
+        $debug_info = array();
+        $debug_info[] = "=== TRIAL REQUEST DEBUG ===";
+        $debug_info[] = "Request Data: " . json_encode($trial_data, JSON_PRETTY_PRINT);
+
         $response = wp_remote_post($this->api_base_url . '/request-trial', array(
             'timeout' => $this->api_timeout,
             'headers' => array('Content-Type' => 'application/json'),
@@ -425,7 +430,11 @@ class SiteOverlay_License_Manager {
         ));
         
         if (is_wp_error($response)) {
-            wp_send_json_error('Connection error: ' . $response->get_error_message());
+            $debug_info[] = "❌ WP_Error: " . $response->get_error_message();
+            wp_send_json_error(array(
+                'message' => 'Connection error: ' . $response->get_error_message(),
+                'debug' => implode("\n", $debug_info)
+            ));
             return;
         }
         
@@ -433,16 +442,30 @@ class SiteOverlay_License_Manager {
         $body = wp_remote_retrieve_body($response);
         $data = json_decode($body, true);
         
+        // Add response debug info
+        $debug_info[] = "Response Code: " . $response_code;
+        $debug_info[] = "Response Body: " . $body;
+        $debug_info[] = "Parsed Data: " . json_encode($data, JSON_PRETTY_PRINT);
+        
         if ($response_code === 200 && $data && isset($data['success'])) {
             if ($data['success']) {
                 wp_send_json_success(array(
-                    'message' => 'Trial sent to email. Check inbox.'
+                    'message' => $data['message'] ?? 'Details submitted. Check your inbox for the license key to activate trial',
+                    'debug' => implode("\n", $debug_info)
                 ));
             } else {
-                wp_send_json_error($data['message']);
+                $debug_info[] = "❌ API Error: " . ($data['message'] ?? 'Unknown error');
+                wp_send_json_error(array(
+                    'message' => $data['message'] ?? 'API returned an error',
+                    'debug' => implode("\n", $debug_info)
+                ));
             }
         } else {
-            wp_send_json_error('Failed to process trial request');
+            $debug_info[] = "❌ Request Failed - Code: " . $response_code;
+            wp_send_json_error(array(
+                'message' => 'Failed to process trial request (Code: ' . $response_code . ')',
+                'debug' => implode("\n", $debug_info)
+            ));
         }
     }
     
@@ -818,7 +841,8 @@ class SiteOverlay_License_Manager {
                     success: function(response) {
                         if (response.success) {
                             // FIXED: Do NOT display license key - force email verification
-                            $('#trial-response').html('<div class="notice notice-success inline trial-success" style="padding: 15px; margin: 0;"><p><strong>✅ Trial License Sent!</strong><br>' + response.data.message + '<br><br><strong>Next Steps:</strong><br>1. Check your email inbox (and spam folder)<br>2. Copy the license key from the email<br>3. Paste it in the "License Key" field below<br>4. Click "Activate License"</p></div>').fadeIn();
+                            var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
+                            $('#trial-response').html('<div class="notice notice-success inline trial-success" style="padding: 15px; margin: 0;"><p><strong>✅ Trial License Sent!</strong><br>' + response.data.message + '<br><br><strong>Next Steps:</strong><br>1. Check your email inbox (and spam folder)<br>2. Copy the license key from the email<br>3. Paste it in the "License Key" field below<br>4. Click "Activate License"</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>').fadeIn();
                             
                             // REMOVED: Auto-fill license key - force manual entry from email
                             // REMOVED: if (response.data.license_key) { $('#license_key').val(response.data.license_key); }
@@ -831,11 +855,13 @@ class SiteOverlay_License_Manager {
                                 $('#license_key').focus();
                             }, 1000);
                         } else {
-                            $('#trial-response').html('<div class="notice notice-error inline trial-error" style="padding: 15px; margin: 0;"><p><strong>❌ Error:</strong> ' + response.data + '</p></div>').fadeIn();
+                            var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
+                            $('#trial-response').html('<div class="notice notice-error inline trial-error" style="padding: 15px; margin: 0;"><p><strong>❌ Error:</strong> ' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>').fadeIn();
                         }
                     },
                     error: function(xhr, status, error) {
-                        $('#trial-response').html('<div class="notice notice-error inline trial-error" style="padding: 15px; margin: 0;"><p><strong>❌ Connection Error:</strong> ' + error + '</p></div>').fadeIn();
+                        var debugInfo = 'Status: ' + status + '\nError: ' + error + '\nResponse: ' + xhr.responseText;
+                        $('#trial-response').html('<div class="notice notice-error inline trial-error" style="padding: 15px; margin: 0;"><p><strong>❌ Connection Error:</strong> ' + error + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>').fadeIn();
                         console.log('AJAX Error:', xhr.responseText);
                     },
                     complete: function() {
