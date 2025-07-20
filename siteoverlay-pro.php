@@ -930,7 +930,10 @@ class SiteOverlay_Pro {
         $debug_info[] = "=== TRIAL REQUEST DEBUG ===";
         $debug_info[] = "Request Data: " . json_encode($trial_data, JSON_PRETTY_PRINT);
 
-        $response = wp_remote_post('https://siteoverlay-api-production.up.railway.app/request-trial', array(
+        $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-trial';
+        $debug_info[] = "Full API URL: " . $api_url;
+
+        $response = wp_remote_post($api_url, array(
             'timeout' => 10,
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode($trial_data),
