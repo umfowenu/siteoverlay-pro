@@ -488,38 +488,46 @@ class SiteOverlay_Pro {
                         nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
                     },
                     success: function(response) {
+                        // Remove any existing messages
+                        $('.trial-message').remove();
+                        
                         if (response.success) {
-                            // Show success alert
-                            var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
-                            alert('✅ SUCCESS: ' + response.data.message + debugInfo);
+                            // Show success message inline
+                            $('#trial-registration-form').append(
+                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">' +
+                                '<strong>✅ Success!</strong> Details submitted. Check your inbox for the license key to activate trial.' +
+                                '</div>'
+                            );
                             
-                            // Update button text
-                            $('#request-trial-btn').text('Trial Submitted Successfully!').prop('disabled', true);
+                            // Disable the trial button
+                            $('#submit-trial-registration').text('Trial Submitted').prop('disabled', true);
                             
-                            // Also show in page
-                            $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>');
-                            setTimeout(function() {
-                                location.reload();
-                            }, 2000);
                         } else {
-                            // Show error alert
-                            var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
-                            alert('❌ ERROR: ' + response.data.message + debugInfo);
-                            
-                            // Also show in page
-                            $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>');
+                            // Show error message inline
+                            $('#trial-registration-form').append(
+                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">' +
+                                '<strong>❌ Error:</strong> ' + response.data.message +
+                                '</div>'
+                            );
                         }
                     },
                     error: function(xhr, status, error) {
-                        // Show error alert
-                        var errorMsg = 'Connection error: ' + error + '\nStatus: ' + status + '\nResponse: ' + xhr.responseText;
-                        alert('❌ AJAX ERROR: ' + errorMsg);
+                        // Remove any existing messages
+                        $('.trial-message').remove();
                         
                         // CONSTITUTIONAL RULE: Graceful degradation
                         if (status === 'timeout') {
-                            $('#license-response').html('<div class="notice notice-warning"><p>Registration submitted! Please check your email for your trial license key.</p></div>');
+                            $('#trial-registration-form').append(
+                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">' +
+                                '<strong>⚠️ Timeout:</strong> Registration submitted! Please check your email for your trial license key.' +
+                                '</div>'
+                            );
                         } else {
-                            $('#license-response').html('<div class="notice notice-error"><p>Connection error: ' + error + '</p></div>');
+                            $('#trial-registration-form').append(
+                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">' +
+                                '<strong>❌ Connection Error:</strong> ' + error +
+                                '</div>'
+                            );
                         }
                     },
                     complete: function() {
@@ -616,6 +624,15 @@ class SiteOverlay_Pro {
                         $btn.text(originalText).prop('disabled', false);
                     }
                 });
+            });
+            
+            // When user starts typing license key, remove trial message
+            $('#license_key').on('input', function() {
+                if ($(this).val().length > 0) {
+                    $('.trial-message').fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
             });
         });
         </script>
@@ -977,21 +994,16 @@ class SiteOverlay_Pro {
         if ($response_code === 200 && $data && isset($data['success'])) {
             if ($data['success']) {
                 wp_send_json_success(array(
-                    'message' => $data['message'] ?? 'Details submitted. Check your inbox for the license key to activate trial',
-                    'debug' => implode("\n", $debug_info)
+                    'message' => $data['message'] ?? 'Details submitted. Check your inbox for the license key to activate trial'
                 ));
             } else {
-                $debug_info[] = "❌ API Error: " . ($data['message'] ?? 'Unknown error');
                 wp_send_json_error(array(
-                    'message' => $data['message'] ?? 'API returned an error',
-                    'debug' => implode("\n", $debug_info)
+                    'message' => $data['message'] ?? 'API returned an error'
                 ));
             }
         } else {
-            $debug_info[] = "❌ Request Failed - Code: " . $response_code;
             wp_send_json_error(array(
-                'message' => 'Failed to process trial request (Code: ' . $response_code . ')',
-                'debug' => implode("\n", $debug_info)
+                'message' => 'Failed to process trial request (Code: ' . $response_code . ')'
             ));
         }
     }
