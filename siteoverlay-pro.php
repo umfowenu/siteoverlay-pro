@@ -489,12 +489,14 @@ class SiteOverlay_Pro {
                     },
                     success: function(response) {
                         if (response.success) {
-                            $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                            var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
+                            $('#license-response').html('<div class="notice notice-success"><p>' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>');
                             setTimeout(function() {
                                 location.reload();
                             }, 2000);
                         } else {
-                            $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data + '</p></div>');
+                            var debugInfo = response.data.debug ? '\n\nDEBUG INFO:\n' + response.data.debug : '';
+                            $('#license-response').html('<div class="notice notice-error"><p>Error: ' + response.data.message + '</p><pre style="background: #f0f0f0; padding: 10px; margin-top: 10px; font-size: 11px; overflow-x: auto;">' + debugInfo + '</pre></div>');
                         }
                     },
                     error: function(xhr, status, error) {
@@ -911,29 +913,67 @@ class SiteOverlay_Pro {
         update_option('siteoverlay_registration_email', $email);
         update_option('siteoverlay_registration_date', current_time('mysql'));
         
-        // Send registration to server (this would be your Pabbly integration)
-        // CONSTITUTIONAL RULE: Non-blocking with short timeout
-        $response = wp_remote_post('https://your-server.com/api/trial-registration', array(
-            'timeout' => 5, // Short timeout as per constitutional rules
-            'body' => array(
-                'full_name' => $full_name,
-                'email' => $email,
-                'site_url' => get_site_url(),
-                'plugin_version' => SITEOVERLAY_RR_VERSION
-            )
+        // Send trial request to Railway API WITH DEBUG OUTPUT
+        $trial_data = array(
+            'full_name' => $full_name,
+            'email' => $email,
+            'website' => '',
+            'siteUrl' => get_site_url(),
+            'siteTitle' => get_bloginfo('name'),
+            'wpVersion' => get_bloginfo('version'),
+            'pluginVersion' => SITEOVERLAY_RR_VERSION,
+            'requestSource' => 'plugin_admin'
+        );
+        
+        // Log the request data being sent (on-screen debug)
+        $debug_info = array();
+        $debug_info[] = "=== TRIAL REQUEST DEBUG ===";
+        $debug_info[] = "Request Data: " . json_encode($trial_data, JSON_PRETTY_PRINT);
+
+        $response = wp_remote_post('https://siteoverlay-api-production.up.railway.app/request-trial', array(
+            'timeout' => 10,
+            'headers' => array('Content-Type' => 'application/json'),
+            'body' => json_encode($trial_data),
+            'blocking' => true,
+            'sslverify' => true
         ));
         
-        // CONSTITUTIONAL RULE: Graceful degradation - always succeed even if server is down
         if (is_wp_error($response)) {
-            // Server is down or timeout - still show success message
-            wp_send_json_success(array(
-                'message' => 'Registration submitted successfully! Please check your email for your trial license key.',
-                'status' => 'registered'
+            $debug_info[] = "❌ WP_Error: " . $response->get_error_message();
+            wp_send_json_error(array(
+                'message' => 'Connection error: ' . $response->get_error_message(),
+                'debug' => implode("\n", $debug_info)
             ));
+            return;
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        
+        // Add response debug info
+        $debug_info[] = "Response Code: " . $response_code;
+        $debug_info[] = "Response Body: " . $body;
+        $debug_info[] = "Parsed Data: " . json_encode($data, JSON_PRETTY_PRINT);
+        
+        if ($response_code === 200 && $data && isset($data['success'])) {
+            if ($data['success']) {
+                wp_send_json_success(array(
+                    'message' => $data['message'] ?? 'Details submitted. Check your inbox for the license key to activate trial',
+                    'debug' => implode("\n", $debug_info)
+                ));
+            } else {
+                $debug_info[] = "❌ API Error: " . ($data['message'] ?? 'Unknown error');
+                wp_send_json_error(array(
+                    'message' => $data['message'] ?? 'API returned an error',
+                    'debug' => implode("\n", $debug_info)
+                ));
+            }
         } else {
-            wp_send_json_success(array(
-                'message' => 'Registration submitted successfully! Please check your email for your trial license key.',
-                'status' => 'registered'
+            $debug_info[] = "❌ Request Failed - Code: " . $response_code;
+            wp_send_json_error(array(
+                'message' => 'Failed to process trial request (Code: ' . $response_code . ')',
+                'debug' => implode("\n", $debug_info)
             ));
         }
     }
