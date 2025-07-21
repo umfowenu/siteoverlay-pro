@@ -59,6 +59,12 @@ class SiteOverlay_Pro {
         if ($this->is_licensed()) {
             add_action('wp_head', array($this, 'display_overlay'));
         }
+        
+        // Load overlay enhancement (optional, modular)
+        $enhancement_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-overlay-enhancement.php';
+        if (file_exists($enhancement_file)) {
+            require_once $enhancement_file;
+        }
     }
     
     public function init() {
