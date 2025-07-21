@@ -1218,20 +1218,16 @@ class SiteOverlay_Pro {
     }
     
     public function display_overlay() {
-        // Only run on frontend single posts/pages
+        // Only run on frontend single posts/pages, not during activation
         if (is_admin() || !is_singular()) return;
-        
         global $post;
         if (!$post) return;
-        
         $overlay_url = get_post_meta($post->ID, '_siteoverlay_overlay_url', true);
         if (!$overlay_url) return;
-        
-        // Increment view count
+        // Increment view count (non-blocking)
         $views = get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: 0;
         update_post_meta($post->ID, '_siteoverlay_overlay_views', $views + 1);
-        
-        // Display overlay
+        // IMMEDIATE OVERLAY DISPLAY - no delays
         ?>
         <style>
         #siteoverlay-overlay-frame {
@@ -1247,15 +1243,11 @@ class SiteOverlay_Pro {
         </style>
         <script>
         (function() {
-            if (typeof activateSiteOverlayScrollbarFix === 'function') {
-                activateSiteOverlayScrollbarFix();
-            }
             var iframe = document.createElement('iframe');
             iframe.id = 'siteoverlay-overlay-frame';
             iframe.src = '<?php echo esc_js($overlay_url); ?>';
             iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:999999;background:white;';
             document.documentElement.appendChild(iframe);
-            // Optionally, add a close handler to remove the class when overlay is closed
         })();
         </script>
         <?php
