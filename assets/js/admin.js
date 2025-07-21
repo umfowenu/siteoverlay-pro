@@ -546,3 +546,6 @@ window.SiteOverlayPro = {
     testApiConnection: testRailwayApiConnection,
     validateLicense: validateLicenseWithRailway
 };
+
+window.activateSiteOverlayScrollbarFix = activateSiteOverlayScrollbarFix;
+window.deactivateSiteOverlayScrollbarFix = deactivateSiteOverlayScrollbarFix;

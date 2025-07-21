@@ -1247,7 +1247,9 @@ class SiteOverlay_Pro {
         </style>
         <script>
         (function() {
-            document.body.classList.add('siteoverlay-active'); // Hide scrollbars when overlay is active
+            if (typeof activateSiteOverlayScrollbarFix === 'function') {
+                activateSiteOverlayScrollbarFix();
+            }
             var iframe = document.createElement('iframe');
             iframe.id = 'siteoverlay-overlay-frame';
             iframe.src = '<?php echo esc_js($overlay_url); ?>';
