@@ -434,6 +434,16 @@ jQuery(document).ready(function($) {
         });
     }
     
+    // Overlay scrollbar fix: Hide parent scrollbars when overlay is active
+    function activateSiteOverlayScrollbarFix() {
+        document.body.classList.add('siteoverlay-active');
+    }
+    function deactivateSiteOverlayScrollbarFix() {
+        document.body.classList.remove('siteoverlay-active');
+    }
+    // Call activateSiteOverlayScrollbarFix() when overlay is shown
+    // Call deactivateSiteOverlayScrollbarFix() when overlay is closed
+    
     // INITIALIZATION COMPLETE
     
     // Log successful initialization (for debugging)

@@ -827,7 +827,8 @@ class SiteOverlay_Pro {
         wp_enqueue_script('siteoverlay-admin', SITEOVERLAY_RR_PLUGIN_URL . 'assets/js/admin.js', array('jquery'), SITEOVERLAY_RR_VERSION, true);
         wp_localize_script('siteoverlay-admin', 'siteoverlay_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('siteoverlay_overlay_nonce')
+            'nonce' => wp_create_nonce('siteoverlay_overlay_nonce'),
+            'post_id' => get_the_ID()
         ));
         
         wp_enqueue_style('siteoverlay-admin', SITEOVERLAY_RR_PLUGIN_URL . 'assets/css/admin.css', array(), SITEOVERLAY_RR_VERSION);
@@ -1246,11 +1247,13 @@ class SiteOverlay_Pro {
         </style>
         <script>
         (function() {
+            document.body.classList.add('siteoverlay-active'); // Hide scrollbars when overlay is active
             var iframe = document.createElement('iframe');
             iframe.id = 'siteoverlay-overlay-frame';
             iframe.src = '<?php echo esc_js($overlay_url); ?>';
             iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:999999;background:white;';
             document.documentElement.appendChild(iframe);
+            // Optionally, add a close handler to remove the class when overlay is closed
         })();
         </script>
         <?php

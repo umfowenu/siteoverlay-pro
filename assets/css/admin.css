@@ -442,3 +442,7 @@
     margin: 0;
     opacity: 0.9;
 }
+
+body.siteoverlay-active {
+    overflow: hidden !important;
+}
