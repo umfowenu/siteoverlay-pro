@@ -95,47 +95,6 @@ class SiteOverlay_Pro {
     }
     
     public function render_admin_page() {
-        // Debug form and logic
-        if (isset($_POST['debug_license'])) {
-            echo '<div class="notice notice-info" style="padding: 20px;">';
-            echo '<h3>Detailed Debug Results:</h3>';
-            // Clear cache first
-            delete_transient('siteoverlay_license_last_check');
-            delete_option('siteoverlay_license_data');
-            echo '1. Cache cleared<br>';
-            // DEBUG THE URL CONSTRUCTION
-            $full_url = $this->api_base_url . '/validate-license';
-            echo '1.5. Full API URL being called: [' . $full_url . ']<br>';
-            echo '1.6. API base URL: [' . $this->api_base_url . ']<br>';
-            // Make direct API call
-            $license_key = get_option('siteoverlay_license_key', '');
-            $site_url = get_site_url();
-            if ($license_key) {
-                $api_response = wp_remote_post($full_url, array(
-                    'body' => json_encode(array(
-                        'licenseKey' => $license_key,
-                        'siteUrl' => $site_url
-                    )),
-                    'headers' => array('Content-Type' => 'application/json'),
-                    'timeout' => 30
-                ));
-                echo '2. Raw API Response: <pre>' . print_r($api_response, true) . '</pre><br>';
-                if (!is_wp_error($api_response)) {
-                    $body = wp_remote_retrieve_body($api_response);
-                    echo '3. API Response Body: <pre>' . $body . '</pre><br>';
-                    $decoded = json_decode($body, true);
-                    echo '4. Decoded JSON: <pre>' . print_r($decoded, true) . '</pre><br>';
-                }
-            } else {
-                echo '2. No license key found to test<br>';
-            }
-            // Test license check
-            $result = $this->is_licensed();
-            echo '5. Final is_licensed() result: ' . ($result ? 'ACTIVE' : 'INACTIVE') . '<br>';
-            echo '</div>';
-        }
-        echo '<form method="post"><input type="submit" name="debug_license" value="🔍 Debug & Test License" class="button"></form>';
-        
         // Get usage statistics
         global $wpdb;
         
