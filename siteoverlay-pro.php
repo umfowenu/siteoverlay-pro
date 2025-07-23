@@ -26,7 +26,7 @@ define('SITEOVERLAY_RR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('SITEOVERLAY_RR_PLUGIN_PATH', plugin_dir_path(__FILE__));
 
 /**
- * Basic SiteOverlay Pro - Core functionality only
+ * SiteOverlay Pro - Fixed License Enforcement
  */
 class SiteOverlay_Pro {
     
@@ -45,7 +45,7 @@ class SiteOverlay_Pro {
             add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
             add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
             
-            // AJAX handlers for overlay functionality - only when licensed
+            // AJAX handlers for overlay functionality - ONLY when licensed
             if ($this->is_licensed()) {
                 add_action('wp_ajax_siteoverlay_save_url', array($this, 'ajax_save_overlay'));
                 add_action('wp_ajax_siteoverlay_remove_url', array($this, 'ajax_remove_overlay'));
@@ -57,15 +57,17 @@ class SiteOverlay_Pro {
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
         }
         
-        // Task 3: Feature Gating - Frontend overlay display only when licensed
+        // CRITICAL FIX: Frontend overlay display ONLY when licensed
         if ($this->is_licensed()) {
             add_action('wp_head', array($this, 'display_overlay'));
         }
         
-        // Load overlay enhancement (optional, modular)
-        $enhancement_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-overlay-enhancement.php';
-        if (file_exists($enhancement_file)) {
-            require_once $enhancement_file;
+        // Load overlay enhancement (optional, modular) - ONLY when licensed
+        if ($this->is_licensed()) {
+            $enhancement_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-overlay-enhancement.php';
+            if (file_exists($enhancement_file)) {
+                require_once $enhancement_file;
+            }
         }
     }
     
@@ -78,7 +80,7 @@ class SiteOverlay_Pro {
         // Register settings
         register_setting('siteoverlay_settings', 'siteoverlay_urls');
         
-        // 8. Admin Notice System
+        // Admin Notice System
         add_action('admin_notices', array($this, 'display_admin_notices'));
     }
     
@@ -95,10 +97,8 @@ class SiteOverlay_Pro {
     public function render_admin_page() {
         // Debug form and logic
         if (isset($_POST['debug_license'])) {
-            $this->clear_all_license_cache();
             echo '<div class="notice notice-info" style="padding: 20px;">';
             echo '<h3>Detailed Debug Results:</h3>';
-            echo '1. All license cache and options cleared<br>';
             // Clear cache first
             delete_transient('siteoverlay_license_last_check');
             delete_option('siteoverlay_license_data');
@@ -108,22 +108,26 @@ class SiteOverlay_Pro {
             echo '1.5. Full API URL being called: [' . $full_url . ']<br>';
             echo '1.6. API base URL: [' . $this->api_base_url . ']<br>';
             // Make direct API call
-            $license_key = 'TRIAL-R07L-TG8S-40RS-70U0';
-            $site_url = 'https://ebiz360.ca';
-            $api_response = wp_remote_post($full_url, array(
-                'body' => json_encode(array(
-                    'licenseKey' => $license_key,
-                    'siteUrl' => $site_url
-                )),
-                'headers' => array('Content-Type' => 'application/json'),
-                'timeout' => 30
-            ));
-            echo '2. Raw API Response: <pre>' . print_r($api_response, true) . '</pre><br>';
-            if (!is_wp_error($api_response)) {
-                $body = wp_remote_retrieve_body($api_response);
-                echo '3. API Response Body: <pre>' . $body . '</pre><br>';
-                $decoded = json_decode($body, true);
-                echo '4. Decoded JSON: <pre>' . print_r($decoded, true) . '</pre><br>';
+            $license_key = get_option('siteoverlay_license_key', '');
+            $site_url = get_site_url();
+            if ($license_key) {
+                $api_response = wp_remote_post($full_url, array(
+                    'body' => json_encode(array(
+                        'licenseKey' => $license_key,
+                        'siteUrl' => $site_url
+                    )),
+                    'headers' => array('Content-Type' => 'application/json'),
+                    'timeout' => 30
+                ));
+                echo '2. Raw API Response: <pre>' . print_r($api_response, true) . '</pre><br>';
+                if (!is_wp_error($api_response)) {
+                    $body = wp_remote_retrieve_body($api_response);
+                    echo '3. API Response Body: <pre>' . $body . '</pre><br>';
+                    $decoded = json_decode($body, true);
+                    echo '4. Decoded JSON: <pre>' . print_r($decoded, true) . '</pre><br>';
+                }
+            } else {
+                echo '2. No license key found to test<br>';
             }
             // Test license check
             $result = $this->is_licensed();
@@ -131,6 +135,7 @@ class SiteOverlay_Pro {
             echo '</div>';
         }
         echo '<form method="post"><input type="submit" name="debug_license" value="🔍 Debug & Test License" class="button"></form>';
+        
         // Get usage statistics
         global $wpdb;
         
@@ -173,8 +178,6 @@ class SiteOverlay_Pro {
         <div class="wrap">
             <h1>SiteOverlay Pro Settings</h1>
             
-
-            
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
                 <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
@@ -189,7 +192,7 @@ class SiteOverlay_Pro {
                 </div>
                 <?php else: ?>
                 <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px;">
-                    <h3 style="margin: 0 0 10px 0; color: #721c24;">🔒 License Required</h3>
+                    <h3 style="margin: 0 0 10px 0; color: #721c24;">🔒 Plugin Inactive</h3>
                     <p style="margin: 0; color: #721c24;">Activate your license to use SiteOverlay Pro</p>
                 </div>
                 <?php endif; ?>
@@ -218,7 +221,7 @@ class SiteOverlay_Pro {
                 $should_disable_trial = $this->should_disable_trial_button();
                 ?>
                 
-                <!-- 2. Admin Interface Behavior by State -->
+                <!-- License State Interface -->
                 <?php if ($license_status['state'] === 'unlicensed'): ?>
                     <!-- UNLICENSED STATE -->
                     <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
@@ -318,7 +321,7 @@ class SiteOverlay_Pro {
                             <strong>Registered Email:</strong> <?php echo esc_html(get_option('siteoverlay_registration_email')); ?>
                         </p>
                         
-                        <!-- 5. Purchase Options Display -->
+                        <!-- Purchase Options Display -->
                         <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
                             <h4 style="margin: 0 0 15px 0; color: #856404;">🚀 Upgrade to Full License</h4>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
@@ -358,7 +361,7 @@ class SiteOverlay_Pro {
                         <h3 style="margin: 0 0 15px 0; color: #721c24;">❌ Trial has expired. Enter a paid license to continue</h3>
                         <p style="margin: 0 0 15px 0; color: #721c24;">Your 14-day trial has expired. Please upgrade to a full license to continue using SiteOverlay Pro.</p>
                         
-                        <!-- 5. Purchase Options Display -->
+                        <!-- Purchase Options Display -->
                         <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
                             <h4 style="margin: 0 0 15px 0; color: #856404;">🚀 Choose Your Plan</h4>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
@@ -518,7 +521,6 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                // CONSTITUTIONAL RULE: Non-blocking with timeout
                 var $btn = $(this);
                 var originalText = $btn.text();
                 $btn.text('Submitting...').prop('disabled', true);
@@ -526,7 +528,7 @@ class SiteOverlay_Pro {
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
-                    timeout: 5000, // 5 second timeout as per constitutional rules
+                    timeout: 5000,
                     data: {
                         action: 'siteoverlay_trial_license',
                         full_name: fullName,
@@ -534,22 +536,16 @@ class SiteOverlay_Pro {
                         nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
                     },
                     success: function(response) {
-                        // Remove any existing messages
                         $('.trial-message').remove();
                         
                         if (response.success) {
-                            // Show success message inline
                             $('#trial-registration-form').append(
                                 '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">' +
                                 '<strong>✅ Success!</strong> Details submitted. Check your inbox for the license key to activate trial.' +
                                 '</div>'
                             );
-                            
-                            // Disable the trial button
                             $('#submit-trial-registration').text('Trial Submitted').prop('disabled', true);
-                            
                         } else {
-                            // Show error message inline
                             $('#trial-registration-form').append(
                                 '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">' +
                                 '<strong>❌ Error:</strong> ' + response.data.message +
@@ -558,10 +554,8 @@ class SiteOverlay_Pro {
                         }
                     },
                     error: function(xhr, status, error) {
-                        // Remove any existing messages
                         $('.trial-message').remove();
                         
-                        // CONSTITUTIONAL RULE: Graceful degradation
                         if (status === 'timeout') {
                             $('#trial-registration-form').append(
                                 '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">' +
@@ -589,7 +583,6 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                // CONSTITUTIONAL RULE: Non-blocking with timeout
                 var $btn = $(this);
                 var originalText = $btn.text();
                 $btn.text('Validating...').prop('disabled', true);
@@ -597,7 +590,7 @@ class SiteOverlay_Pro {
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
-                    timeout: 5000, // 5 second timeout as per constitutional rules
+                    timeout: 5000,
                     data: {
                         action: 'siteoverlay_validate_license',
                         license_key: licenseKey,
@@ -614,7 +607,6 @@ class SiteOverlay_Pro {
                         }
                     },
                     error: function(xhr, status, error) {
-                        // CONSTITUTIONAL RULE: Graceful degradation
                         if (status === 'timeout') {
                             $('#license-response').html('<div class="notice notice-warning"><p>License validation timed out. Please try again.</p></div>');
                         } else {
@@ -634,7 +626,6 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                // CONSTITUTIONAL RULE: Non-blocking with timeout
                 var $btn = $(this);
                 var originalText = $btn.text();
                 $btn.text('Validating...').prop('disabled', true);
@@ -642,7 +633,7 @@ class SiteOverlay_Pro {
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
-                    timeout: 5000, // 5 second timeout as per constitutional rules
+                    timeout: 5000,
                     data: {
                         action: 'siteoverlay_validate_license',
                         license_key: licenseKey,
@@ -659,7 +650,6 @@ class SiteOverlay_Pro {
                         }
                     },
                     error: function(xhr, status, error) {
-                        // CONSTITUTIONAL RULE: Graceful degradation
                         if (status === 'timeout') {
                             $('#license-response').html('<div class="notice notice-warning"><p>License validation timed out. Please try again.</p></div>');
                         } else {
@@ -992,7 +982,7 @@ class SiteOverlay_Pro {
         update_option('siteoverlay_registration_email', $email);
         update_option('siteoverlay_registration_date', current_time('mysql'));
         
-        // Send trial request to Railway API WITH DEBUG OUTPUT
+        // Send trial request to Railway API
         $trial_data = array(
             'full_name' => $full_name,
             'email' => $email,
@@ -1004,14 +994,8 @@ class SiteOverlay_Pro {
             'requestSource' => 'plugin_admin'
         );
         
-        // Log the request data being sent (on-screen debug)
-        $debug_info = array();
-        $debug_info[] = "=== TRIAL REQUEST DEBUG ===";
-        $debug_info[] = "Request Data: " . json_encode($trial_data, JSON_PRETTY_PRINT);
-
         $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-trial';
-        $debug_info[] = "Full API URL: " . $api_url;
-
+        
         $response = wp_remote_post($api_url, array(
             'timeout' => 10,
             'headers' => array('Content-Type' => 'application/json'),
@@ -1021,10 +1005,8 @@ class SiteOverlay_Pro {
         ));
         
         if (is_wp_error($response)) {
-            $debug_info[] = "❌ WP_Error: " . $response->get_error_message();
             wp_send_json_error(array(
-                'message' => 'Connection error: ' . $response->get_error_message(),
-                'debug' => implode("\n", $debug_info)
+                'message' => 'Connection error: ' . $response->get_error_message()
             ));
             return;
         }
@@ -1032,11 +1014,6 @@ class SiteOverlay_Pro {
         $response_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
         $data = json_decode($body, true);
-        
-        // Add response debug info
-        $debug_info[] = "Response Code: " . $response_code;
-        $debug_info[] = "Response Body: " . $body;
-        $debug_info[] = "Parsed Data: " . json_encode($data, JSON_PRETTY_PRINT);
         
         if ($response_code === 200 && $data && isset($data['success'])) {
             if ($data['success']) {
@@ -1073,35 +1050,81 @@ class SiteOverlay_Pro {
             return;
         }
         
-        // Simple validation - in real implementation this would call your API
-        if (strpos($license_key, 'TRIAL-') === 0) {
-            $status = 'trial';
-            $message = 'Trial license activated successfully! You have 14 days to test SiteOverlay Pro.';
-            $expiry = date('Y-m-d H:i:s', strtotime('+14 days'));
-        } elseif (strpos($license_key, 'PRO-') === 0) {
-            $status = 'professional';
-            $message = 'Professional license activated successfully!';
-            $expiry = date('Y-m-d H:i:s', strtotime('+1 year'));
-        } elseif (strpos($license_key, 'LIFETIME-') === 0) {
-            $status = 'lifetime';
-            $message = 'Lifetime license activated successfully!';
-            $expiry = null;
+        // CRITICAL FIX: Call Railway API for real validation
+        $validation_result = $this->validate_license_with_railway($license_key);
+        
+        if ($validation_result['success']) {
+            // Save license data
+            update_option('siteoverlay_license_key', $license_key);
+            update_option('siteoverlay_license_status', $validation_result['status']);
+            update_option('siteoverlay_license_expiry', $validation_result['expiry']);
+            update_option('siteoverlay_license_validated', true);
+            
+            wp_send_json_success(array(
+                'message' => $validation_result['message'],
+                'status' => $validation_result['status'],
+                'state' => 'licensed'
+            ));
         } else {
-            wp_send_json_error('Invalid license key format');
-            return;
+            wp_send_json_error($validation_result['message']);
+        }
+    }
+    
+    /**
+     * CRITICAL FIX: Validate license with Railway API
+     */
+    private function validate_license_with_railway($license_key) {
+        $api_response = wp_remote_post($this->api_base_url . '/validate-license', array(
+            'body' => json_encode(array(
+                'licenseKey' => $license_key,
+                'siteUrl' => get_site_url()
+            )),
+            'headers' => array('Content-Type' => 'application/json'),
+            'timeout' => 10
+        ));
+        
+        if (is_wp_error($api_response)) {
+            return array(
+                'success' => false,
+                'message' => 'Connection error: ' . $api_response->get_error_message()
+            );
         }
         
-        // Save license with validation flag
-        update_option('siteoverlay_license_key', $license_key);
-        update_option('siteoverlay_license_status', $status);
-        update_option('siteoverlay_license_expiry', $expiry);
-        update_option('siteoverlay_license_validated', true);
+        $body = wp_remote_retrieve_body($api_response);
+        $data = json_decode($body, true);
         
-        wp_send_json_success(array(
-            'message' => $message,
-            'status' => $status,
-            'state' => 'licensed'
-        ));
+        if (isset($data['success']) && $data['success'] === true) {
+            // Determine license type and expiry
+            $status = 'active';
+            $expiry = null;
+            $message = 'License activated successfully!';
+            
+            if (strpos($license_key, 'TRIAL-') === 0) {
+                $status = 'trial';
+                $expiry = date('Y-m-d H:i:s', strtotime('+14 days'));
+                $message = 'Trial license activated successfully! You have 14 days to test SiteOverlay Pro.';
+            } elseif (strpos($license_key, 'PRO-') === 0) {
+                $status = 'professional';
+                $expiry = date('Y-m-d H:i:s', strtotime('+1 year'));
+                $message = 'Professional license activated successfully!';
+            } elseif (strpos($license_key, 'LIFETIME-') === 0) {
+                $status = 'lifetime';
+                $expiry = null;
+                $message = 'Lifetime license activated successfully!';
+            }
+            
+            return array(
+                'success' => true,
+                'message' => $message,
+                'status' => $status,
+                'expiry' => $expiry
+            );
+        } else {
+            return array(
+                'success' => false,
+                'message' => $data['message'] ?? 'Invalid license key'
+            );
+        }
     }
     
     public function get_license_status() {
@@ -1187,39 +1210,15 @@ class SiteOverlay_Pro {
         );
     }
     
+    /**
+     * CRITICAL FIX: Proper license enforcement
+     */
     public function is_licensed() {
-    // Always check with API for real-time validation
-    return $this->validate_license_with_api();
+        $license_status = $this->get_license_status();
+        
+        // ONLY return true if features are explicitly enabled
+        return $license_status['features_enabled'] === true;
     }
-
-    private function validate_license_with_api() {
-        $license_key = get_option('siteoverlay_license_key');
-    
-        if (!$license_key) {
-            return false;
-        }
-    
-    // Call API to validate license
-    $api_response = wp_remote_post($this->api_base_url . '/validate-license', array(
-        'body' => json_encode(array(
-            'licenseKey' => $license_key,
-            'siteUrl' => get_site_url()
-        )),
-        'headers' => array('Content-Type' => 'application/json'),
-        'timeout' => 10
-    ));
-    
-    // If API call fails, assume invalid for security
-    if (is_wp_error($api_response)) {
-        return false;
-    }
-    
-    $body = wp_remote_retrieve_body($api_response);
-    $data = json_decode($body, true);
-    
-    // Return true only if API explicitly says license is valid
-    return isset($data['success']) && $data['success'] === true;
-}
     
     public function is_trial_active() {
         $license_status = $this->get_license_status();
@@ -1243,7 +1242,7 @@ class SiteOverlay_Pro {
             case 'unlicensed':
                 ?>
                 <div class="notice notice-warning is-dismissible">
-                    <p><strong>SiteOverlay Pro:</strong> Activate your license to use SiteOverlay Pro. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Activate Now</a></p>
+                    <p><strong>SiteOverlay Pro:</strong> Plugin is inactive. Activate your license to use SiteOverlay Pro. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Activate Now</a></p>
                 </div>
                 <?php
                 break;
@@ -1267,7 +1266,7 @@ class SiteOverlay_Pro {
             case 'trial_expired':
                 ?>
                 <div class="notice notice-error is-dismissible">
-                    <p><strong>SiteOverlay Pro:</strong> Trial expired - enter a paid license to continue. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Upgrade Now</a></p>
+                    <p><strong>SiteOverlay Pro:</strong> Trial expired - plugin is inactive. Enter a paid license to continue. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Upgrade Now</a></p>
                 </div>
                 <?php
                 break;
@@ -1292,17 +1291,24 @@ class SiteOverlay_Pro {
         return true;
     }
     
+    /**
+     * CRITICAL: Fast overlay display - ONLY when licensed
+     */
     public function display_overlay() {
         // Only run on frontend single posts/pages, not during activation
         if (is_admin() || !is_singular()) return;
+        
         global $post;
         if (!$post) return;
+        
         $overlay_url = get_post_meta($post->ID, '_siteoverlay_overlay_url', true);
         if (!$overlay_url) return;
+        
         // Increment view count (non-blocking)
         $views = get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: 0;
         update_post_meta($post->ID, '_siteoverlay_overlay_views', $views + 1);
-        // IMMEDIATE OVERLAY DISPLAY - no delays
+        
+        // IMMEDIATE OVERLAY DISPLAY - no delays - with scrollbar fix
         ?>
         <style>
         body, html {
@@ -1330,18 +1336,6 @@ class SiteOverlay_Pro {
         </script>
         <?php
     }
-
-    // Comprehensive function to clear all license cache and options
-    public function clear_all_license_cache() {
-        delete_transient('siteoverlay_license_last_check');
-        delete_option('siteoverlay_license_data');
-        delete_option('siteoverlay_license_key');
-        delete_option('siteoverlay_license_status');
-        delete_option('siteoverlay_license_expiry');
-        delete_option('siteoverlay_license_validated');
-        delete_option('siteoverlay_last_error');
-        // Add any other related keys as needed
-    }
 }
 
 // Initialize the plugin
@@ -1362,17 +1356,10 @@ function siteoverlay_pro_activate() {
     if (!get_option('siteoverlay_license_status')) {
         update_option('siteoverlay_license_status', 'inactive');
     }
-    // Cache duration invalidation logic
-    $current_duration = 30;
-    if (get_option('siteoverlay_cache_duration') !== $current_duration) {
-        if (class_exists('SiteOverlay_Pro')) {
-            $plugin = new SiteOverlay_Pro();
-            $plugin->clear_all_license_cache();
-        }
-        update_option('siteoverlay_cache_duration', $current_duration);
-    }
+    
     // Clear any existing scheduled events
     wp_clear_scheduled_hook('siteoverlay_daily_heartbeat');
+    
     // Flush rewrite rules
     flush_rewrite_rules();
 }
@@ -1400,16 +1387,6 @@ function siteoverlay_pro_uninstall() {
     delete_transient('siteoverlay_site_registered');
     delete_transient('siteoverlay_usage_stats');
     delete_transient('siteoverlay_license_last_check');
-    
-    // Optional: Remove all plugin data (commented out for safety)
-    // delete_option('siteoverlay_license_key');
-    // delete_option('siteoverlay_license_data');
-    // delete_option('siteoverlay_license_status');
-    // delete_option('siteoverlay_registration_name');
-    // delete_option('siteoverlay_registration_email');
-    // delete_option('siteoverlay_registration_date');
-    // delete_option('siteoverlay_license_expiry');
-    // delete_option('siteoverlay_license_validated');
     
     // Remove all post meta related to overlays
     global $wpdb;
@@ -1457,3 +1434,4 @@ add_action('save_post', function($post_id) {
         }
     }
 }); 
+?>
