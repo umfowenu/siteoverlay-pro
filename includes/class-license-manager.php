@@ -59,7 +59,7 @@ class SiteOverlay_License_Manager {
         
         // Background validation with short timeout
         $this->validate_license_background();
-        set_transient('siteoverlay_license_last_check', time(), 21600);
+        set_transient('siteoverlay_license_last_check', time(), 30);
     }
     
     /**
@@ -1245,19 +1245,12 @@ class SiteOverlay_License_Manager {
      * FIXED: Check if current license is valid - STRICT VALIDATION
      */
     public function has_valid_license() {
+        // Always validate with API - ignore cache for maximum security
         $license_key = $this->get_license_key();
-        $license_data = get_option($this->license_data_option, array());
-        
         if (empty($license_key)) {
             return false;
         }
-        
-        if (!$license_data) {
-            return false;
-        }
-        
-        return isset($license_data['status']) && 
-               in_array($license_data['status'], array('valid', 'manual', 'active', 'trial'));
+        return $this->validate_license_with_railway($license_key, 'check');
     }
     
     /**
@@ -1314,6 +1307,18 @@ class SiteOverlay_License_Manager {
             return;
         }
         
+        // Check for site limit error specifically
+        $last_error = get_option('siteoverlay_last_error', '');
+        if (strpos($last_error, 'Site limit exceeded') !== false) {
+            echo '<div class="notice notice-error is-dismissible">';
+            echo '<p><strong>SiteOverlay Pro - Site Limit Reached:</strong><br>';
+            echo esc_html($last_error);
+            echo '<br><strong>To install on this site:</strong> Uninstall SiteOverlay Pro from an existing site to free up an installation slot, then try activating again.';
+            echo '<br><a href="' . admin_url('options-general.php?page=siteoverlay-license') . '">Manage your license</a> | <a href="https://siteoverlay.24hr.pro/" target="_blank">Upgrade license</a></p>';
+            echo '</div>';
+            return; // Show only this error if it's a site limit issue
+        }
+
         if (!$this->has_valid_license()) {
             echo '<div class="notice notice-warning siteoverlay-license-notice">';
             echo '<p><strong>SiteOverlay Pro:</strong> No active license detected. ';

@@ -16,6 +16,8 @@ jQuery(document).ready(function($) {
     // Save overlay (CORE - FAST, NON-BLOCKING)
     $('#save-overlay, #edit-overlay').on('click', function(e) {
         e.preventDefault();
+        console.log('Save button clicked!'); // DEBUG
+        console.log('Button found:', this); // DEBUG
         saveOverlay();
     });
     

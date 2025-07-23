@@ -30,6 +30,8 @@ define('SITEOVERLAY_RR_PLUGIN_PATH', plugin_dir_path(__FILE__));
  */
 class SiteOverlay_Pro {
     
+    private $api_base_url = 'https://siteoverlay-api-production.up.railway.app/api';
+    
     public function __construct() {
         // Basic initialization
         add_action('init', array($this, 'init'));
@@ -91,6 +93,44 @@ class SiteOverlay_Pro {
     }
     
     public function render_admin_page() {
+        // Debug form and logic
+        if (isset($_POST['debug_license'])) {
+            $this->clear_all_license_cache();
+            echo '<div class="notice notice-info" style="padding: 20px;">';
+            echo '<h3>Detailed Debug Results:</h3>';
+            echo '1. All license cache and options cleared<br>';
+            // Clear cache first
+            delete_transient('siteoverlay_license_last_check');
+            delete_option('siteoverlay_license_data');
+            echo '1. Cache cleared<br>';
+            // DEBUG THE URL CONSTRUCTION
+            $full_url = $this->api_base_url . '/validate-license';
+            echo '1.5. Full API URL being called: [' . $full_url . ']<br>';
+            echo '1.6. API base URL: [' . $this->api_base_url . ']<br>';
+            // Make direct API call
+            $license_key = 'TRIAL-R07L-TG8S-40RS-70U0';
+            $site_url = 'https://ebiz360.ca';
+            $api_response = wp_remote_post($full_url, array(
+                'body' => json_encode(array(
+                    'licenseKey' => $license_key,
+                    'siteUrl' => $site_url
+                )),
+                'headers' => array('Content-Type' => 'application/json'),
+                'timeout' => 30
+            ));
+            echo '2. Raw API Response: <pre>' . print_r($api_response, true) . '</pre><br>';
+            if (!is_wp_error($api_response)) {
+                $body = wp_remote_retrieve_body($api_response);
+                echo '3. API Response Body: <pre>' . $body . '</pre><br>';
+                $decoded = json_decode($body, true);
+                echo '4. Decoded JSON: <pre>' . print_r($decoded, true) . '</pre><br>';
+            }
+            // Test license check
+            $result = $this->is_licensed();
+            echo '5. Final is_licensed() result: ' . ($result ? 'ACTIVE' : 'INACTIVE') . '<br>';
+            echo '</div>';
+        }
+        echo '<form method="post"><input type="submit" name="debug_license" value="🔍 Debug & Test License" class="button"></form>';
         // Get usage statistics
         global $wpdb;
         
@@ -1148,9 +1188,38 @@ class SiteOverlay_Pro {
     }
     
     public function is_licensed() {
-        $license_status = $this->get_license_status();
-        return $license_status['features_enabled'];
+    // Always check with API for real-time validation
+    return $this->validate_license_with_api();
     }
+
+    private function validate_license_with_api() {
+        $license_key = get_option('siteoverlay_license_key');
+    
+        if (!$license_key) {
+            return false;
+        }
+    
+    // Call API to validate license
+    $api_response = wp_remote_post($this->api_base_url . '/validate-license', array(
+        'body' => json_encode(array(
+            'licenseKey' => $license_key,
+            'siteUrl' => get_site_url()
+        )),
+        'headers' => array('Content-Type' => 'application/json'),
+        'timeout' => 10
+    ));
+    
+    // If API call fails, assume invalid for security
+    if (is_wp_error($api_response)) {
+        return false;
+    }
+    
+    $body = wp_remote_retrieve_body($api_response);
+    $data = json_decode($body, true);
+    
+    // Return true only if API explicitly says license is valid
+    return isset($data['success']) && $data['success'] === true;
+}
     
     public function is_trial_active() {
         $license_status = $this->get_license_status();
@@ -1236,6 +1305,9 @@ class SiteOverlay_Pro {
         // IMMEDIATE OVERLAY DISPLAY - no delays
         ?>
         <style>
+        body, html {
+            overflow: hidden !important;
+        }
         #siteoverlay-overlay-frame {
             position: fixed;
             top: 0;
@@ -1258,6 +1330,18 @@ class SiteOverlay_Pro {
         </script>
         <?php
     }
+
+    // Comprehensive function to clear all license cache and options
+    public function clear_all_license_cache() {
+        delete_transient('siteoverlay_license_last_check');
+        delete_option('siteoverlay_license_data');
+        delete_option('siteoverlay_license_key');
+        delete_option('siteoverlay_license_status');
+        delete_option('siteoverlay_license_expiry');
+        delete_option('siteoverlay_license_validated');
+        delete_option('siteoverlay_last_error');
+        // Add any other related keys as needed
+    }
 }
 
 // Initialize the plugin
@@ -1278,10 +1362,17 @@ function siteoverlay_pro_activate() {
     if (!get_option('siteoverlay_license_status')) {
         update_option('siteoverlay_license_status', 'inactive');
     }
-    
+    // Cache duration invalidation logic
+    $current_duration = 30;
+    if (get_option('siteoverlay_cache_duration') !== $current_duration) {
+        if (class_exists('SiteOverlay_Pro')) {
+            $plugin = new SiteOverlay_Pro();
+            $plugin->clear_all_license_cache();
+        }
+        update_option('siteoverlay_cache_duration', $current_duration);
+    }
     // Clear any existing scheduled events
     wp_clear_scheduled_hook('siteoverlay_daily_heartbeat');
-    
     // Flush rewrite rules
     flush_rewrite_rules();
 }
