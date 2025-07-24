@@ -943,9 +943,9 @@ class SiteOverlay_Pro {
         
         // Send trial request to Railway API
         $trial_data = array(
-            'full_name' => $full_name,
+            'name' => $full_name,  // ✅ FIXED - API expects 'name' not 'full_name'
             'email' => $email,
-            'website' => '',
+            'domain' => get_site_url(),  // ✅ OPTIONAL - API also accepts 'domain'
             'siteUrl' => get_site_url(),
             'siteTitle' => get_bloginfo('name'),
             'wpVersion' => get_bloginfo('version'),
