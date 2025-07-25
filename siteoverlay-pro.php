@@ -26,12 +26,16 @@ define('SITEOVERLAY_RR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('SITEOVERLAY_RR_PLUGIN_PATH', plugin_dir_path(__FILE__));
 
 /**
- * SiteOverlay Pro - Fixed License Enforcement
+ * Main plugin class for SiteOverlay Pro
+ * Handles initialization, admin interface, and overlay display
  */
 class SiteOverlay_Pro {
     
     private $api_base_url = 'https://siteoverlay-api-production.up.railway.app/api';
     
+    /**
+     * Constructor - sets up WordPress hooks and plugin integration
+     */
     public function __construct() {
         // Basic initialization
         add_action('init', array($this, 'init'));
@@ -71,11 +75,19 @@ class SiteOverlay_Pro {
         }
     }
     
+    /**
+     * Initialize plugin hooks and WordPress integration
+     * Sets up admin interface and frontend functionality
+     */
     public function init() {
         // Load textdomain
         load_plugin_textdomain('siteoverlay-rr', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
     
+    /**
+     * Initialize admin settings and notices
+     * Registers plugin settings and admin notices
+     */
     public function admin_init() {
         // Register settings
         register_setting('siteoverlay_settings', 'siteoverlay_urls');
@@ -84,6 +96,9 @@ class SiteOverlay_Pro {
         add_action('admin_notices', array($this, 'display_admin_notices'));
     }
     
+    /**
+     * Add plugin settings page to WordPress admin menu
+     */
     public function add_admin_menu() {
         add_options_page(
             'SiteOverlay Pro Settings',
@@ -94,6 +109,10 @@ class SiteOverlay_Pro {
         );
     }
     
+    /**
+     * Render the main admin settings page
+     * Displays license status, overlays, and purchase options
+     */
     public function render_admin_page() {
         // Get usage statistics
         global $wpdb;
@@ -634,6 +653,9 @@ class SiteOverlay_Pro {
         <?php
     }
     
+    /**
+     * Add overlay meta boxes to post/page editor
+     */
     public function add_meta_boxes() {
         // ALWAYS add meta boxes - content changes based on license status
         $post_types = array('post', 'page');
@@ -649,6 +671,9 @@ class SiteOverlay_Pro {
         }
     }
     
+    /**
+     * Render overlay meta box based on license status
+     */
     public function render_meta_box($post) {
         wp_nonce_field('siteoverlay_overlay_nonce', 'siteoverlay_overlay_nonce');
         
@@ -813,6 +838,9 @@ class SiteOverlay_Pro {
         <?php
     }
     
+    /**
+     * Enqueue admin scripts and styles for overlay management
+     */
     public function admin_enqueue_scripts($hook) {
         // Only load on post/page edit screens
         if (!in_array($hook, array('post.php', 'post-new.php', 'page.php', 'page-new.php'))) {
@@ -829,6 +857,10 @@ class SiteOverlay_Pro {
         wp_enqueue_style('siteoverlay-admin', SITEOVERLAY_RR_PLUGIN_URL . 'assets/css/admin.css', array(), SITEOVERLAY_RR_VERSION);
     }
     
+    /**
+     * Handle AJAX request to save overlay URL
+     * Validates user input and updates post meta
+     */
     public function ajax_save_overlay() {
         // Verify nonce for security
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
@@ -866,6 +898,10 @@ class SiteOverlay_Pro {
         ));
     }
     
+    /**
+     * Handle AJAX request to remove overlay URL
+     * Removes overlay data from post meta
+     */
     public function ajax_remove_overlay() {
         // Verify nonce for security
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
@@ -896,6 +932,10 @@ class SiteOverlay_Pro {
         ));
     }
     
+    /**
+     * Handle AJAX request to preview overlay URL
+     * Returns overlay URL for preview in admin
+     */
     public function ajax_preview_overlay() {
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
             wp_send_json_error('Security check failed');
@@ -912,6 +952,10 @@ class SiteOverlay_Pro {
         }
     }
     
+    /**
+     * Handle trial license registration from admin form
+     * Processes user input and contacts licensing system
+     */
     public function ajax_trial_license() {
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
             wp_send_json_error('Security check failed');
@@ -991,6 +1035,10 @@ class SiteOverlay_Pro {
         }
     }
     
+    /**
+     * Handle license validation from admin interface
+     * Updates plugin activation status based on license
+     */
     public function ajax_validate_license() {
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
             wp_send_json_error('Security check failed');
@@ -1086,6 +1134,10 @@ class SiteOverlay_Pro {
         }
     }
     
+    /**
+     * Get current license status for plugin
+     * Used to control feature access and admin display
+     */
     public function get_license_status() {
         $license_key = get_option('siteoverlay_license_key');
         $license_status = get_option('siteoverlay_license_status');
@@ -1170,7 +1222,8 @@ class SiteOverlay_Pro {
     }
     
     /**
-     * CRITICAL FIX: Proper license enforcement
+     * Check if plugin features should be enabled
+     * Used to control overlay display and admin options
      */
     public function is_licensed() {
         $license_status = $this->get_license_status();
@@ -1179,16 +1232,25 @@ class SiteOverlay_Pro {
         return $license_status['features_enabled'] === true;
     }
     
+    /**
+     * Check if trial license is currently active
+     */
     public function is_trial_active() {
         $license_status = $this->get_license_status();
         return $license_status['state'] === 'trial_active';
     }
     
+    /**
+     * Determine if trial button should be disabled in admin
+     */
     public function should_disable_trial_button() {
         $license_status = $this->get_license_status();
         return in_array($license_status['state'], ['trial_active', 'trial_expired', 'licensed']);
     }
     
+    /**
+     * Display admin notices for license and trial status
+     */
     public function display_admin_notices() {
         // Only show on admin pages, not on the plugin settings page
         if (isset($_GET['page']) && $_GET['page'] === 'siteoverlay-settings') {
@@ -1232,6 +1294,9 @@ class SiteOverlay_Pro {
         }
     }
     
+    /**
+     * Test file permissions for plugin directory
+     */
     public function test_file_permissions() {
         $test_file = plugin_dir_path(__FILE__) . 'test.txt';
         
@@ -1251,7 +1316,8 @@ class SiteOverlay_Pro {
     }
     
     /**
-     * CRITICAL: Fast overlay display - ONLY when licensed
+     * Display overlay on frontend when plugin is active
+     * Provides fast overlay loading for rank & rent websites
      */
     public function display_overlay() {
         // Only run on frontend single posts/pages, not during activation
