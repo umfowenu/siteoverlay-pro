@@ -59,6 +59,7 @@ class SiteOverlay_Pro {
             // License management AJAX handlers (always available)
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
+            add_action('wp_ajax_siteoverlay_request_paid_license', array($this, 'ajax_request_paid_license'));
         }
         
         // CRITICAL FIX: Frontend overlay display ONLY when licensed
@@ -211,22 +212,24 @@ class SiteOverlay_Pro {
                             <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
                         </div>
                         
-                        <!-- Trial Registration Form -->
+                        <!-- Trial Registration Form (Enhanced) -->
                         <div id="trial-registration-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                            <h4 style="margin: 0 0 15px 0; color: #495057;">Register for Free Trial</h4>
-                            <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter your details below to receive your 14-day trial license key via email.</p>
-                            
+                            <h4 style="margin: 0 0 15px 0; color: #495057;">Get Started with SiteOverlay Pro</h4>
+                            <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Select your license type and enter your details below.</p>
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-weight: bold; margin-bottom: 5px; display: block;">License Type:</label>
+                                <label><input type="radio" name="license-type" value="trial" checked> 14-Day Free Trial</label>
+                                <label style="margin-left: 20px;"><input type="radio" name="license-type" value="paid"> I Already Purchased (Get License)</label>
+                            </div>
                             <div style="margin-bottom: 15px;">
                                 <label for="full-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Full Name:</label>
                                 <input type="text" id="full-name" placeholder="Enter your full name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
                             </div>
-                            
                             <div style="margin-bottom: 15px;">
                                 <label for="email-address" style="display: block; margin-bottom: 5px; font-weight: bold;">Email Address:</label>
                                 <input type="email" id="email-address" placeholder="Enter your email address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
                             </div>
-                            
-                            <button type="button" class="button button-primary" id="submit-trial-registration">Submit Registration</button>
+                            <button type="button" class="button button-primary" id="submit-license-request">Submit Registration</button>
                         </div>
                         
                         <!-- License Key Form -->
@@ -485,68 +488,53 @@ class SiteOverlay_Pro {
                 $('#trial-registration-form').hide();
             });
             
-            $('#submit-trial-registration').on('click', function() {
+            // Enhanced license request handler
+            $('#submit-license-request').on('click', function() {
+                var licenseType = $('input[name="license-type"]:checked').val();
                 var fullName = $('#full-name').val();
                 var email = $('#email-address').val();
-                
                 if (!fullName) {
                     alert('Please enter your full name');
                     return;
                 }
-                
                 if (!email) {
                     alert('Please enter your email address');
                     return;
                 }
-                
                 var $btn = $(this);
                 var originalText = $btn.text();
                 $btn.text('Submitting...').prop('disabled', true);
-                
+                var ajaxAction = (licenseType === 'paid') ? 'siteoverlay_request_paid_license' : 'siteoverlay_trial_license';
+                var ajaxData = {
+                    full_name: fullName,
+                    email: email,
+                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                };
+                if (licenseType === 'paid') {
+                    ajaxData.action = 'siteoverlay_request_paid_license';
+                } else {
+                    ajaxData.action = 'siteoverlay_trial_license';
+                }
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
                     timeout: 5000,
-                    data: {
-                        action: 'siteoverlay_trial_license',
-                        full_name: fullName,
-                        email: email,
-                        nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                    },
+                    data: ajaxData,
                     success: function(response) {
                         $('.trial-message').remove();
-                        
                         if (response.success) {
-                            $('#trial-registration-form').append(
-                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">' +
-                                '<strong>✅ Success!</strong> Details submitted. Check your inbox for the license key to activate trial.' +
-                                '</div>'
-                            );
-                            $('#submit-trial-registration').text('Trial Submitted').prop('disabled', true);
+                            var msg = (licenseType === 'paid')
+                                ? '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;"><strong>✅ Success!</strong> License sent to your email. Check your inbox and enter your license key to activate.</div>'
+                                : '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;"><strong>✅ Success!</strong> Details submitted. Check your inbox for the license key to activate trial.</div>';
+                            $('#trial-registration-form').append(msg);
+                            $btn.text('Submitted').prop('disabled', true);
                         } else {
-                            $('#trial-registration-form').append(
-                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">' +
-                                '<strong>❌ Error:</strong> ' + response.data.message +
-                                '</div>'
-                            );
+                            $('#trial-registration-form').append('<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;"><strong>❌ Error:</strong> ' + response.data.message + '</div>');
                         }
                     },
                     error: function(xhr, status, error) {
                         $('.trial-message').remove();
-                        
-                        if (status === 'timeout') {
-                            $('#trial-registration-form').append(
-                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">' +
-                                '<strong>⚠️ Timeout:</strong> Registration submitted! Please check your email for your trial license key.' +
-                                '</div>'
-                            );
-                        } else {
-                            $('#trial-registration-form').append(
-                                '<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">' +
-                                '<strong>❌ Connection Error:</strong> ' + error +
-                                '</div>'
-                            );
-                        }
+                        $('#trial-registration-form').append('<div class="trial-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;"><strong>❌ Connection Error:</strong> ' + error + '</div>');
                     },
                     complete: function() {
                         $btn.text(originalText).prop('disabled', false);
@@ -1360,6 +1348,62 @@ class SiteOverlay_Pro {
         })();
         </script>
         <?php
+    }
+
+    /**
+     * Handle paid license request from admin form
+     * Sends user details to licensing system and instructs user to check email
+     */
+    public function ajax_request_paid_license() {
+        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        $full_name = sanitize_text_field($_POST['full_name']);
+        $email = sanitize_email($_POST['email']);
+        if (empty($full_name)) {
+            wp_send_json_error('Please enter your full name');
+            return;
+        }
+        if (empty($email) || !is_email($email)) {
+            wp_send_json_error('Please enter a valid email address');
+            return;
+        }
+        $paid_data = array(
+            'name' => $full_name,
+            'email' => $email,
+            'domain' => get_site_url()
+        );
+        $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-paid-license';
+        $response = wp_remote_post($api_url, array(
+            'timeout' => 10,
+            'headers' => array('Content-Type' => 'application/json'),
+            'body' => json_encode($paid_data),
+            'blocking' => true,
+            'sslverify' => true
+        ));
+        if (is_wp_error($response)) {
+            wp_send_json_error(array(
+                'message' => 'Connection error: ' . $response->get_error_message()
+            ));
+            return;
+        }
+        $response_code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        if ($response_code === 200 && $data && isset($data['success']) && $data['success']) {
+            wp_send_json_success(array(
+                'message' => $data['message'] ?? 'License sent to your email. Check your inbox and enter your license key to activate.'
+            ));
+        } else {
+            wp_send_json_error(array(
+                'message' => $data['message'] ?? 'Failed to process paid license request (Code: ' . $response_code . ')'
+            ));
+        }
     }
 }
 
