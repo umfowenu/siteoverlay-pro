@@ -481,11 +481,15 @@ class SiteOverlay_Pro {
             $('#show-trial-form').on('click', function() {
                 $('#trial-registration-form').show();
                 $('#license-form').hide();
+                // Clear any previous messages
+                $('.trial-message').remove();
             });
             
             $('#show-license-form').on('click', function() {
                 $('#license-form').show();
                 $('#trial-registration-form').hide();
+                // Clear any previous messages
+                $('.trial-message').remove();
             });
             
             // Enhanced license request handler
