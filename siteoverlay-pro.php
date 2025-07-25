@@ -207,10 +207,24 @@ class SiteOverlay_Pro {
                         <h3 style="margin: 0 0 15px 0; color: #856404;">🎯 Get Started with SiteOverlay Pro</h3>
                         <p style="margin: 0 0 20px 0; color: #856404;">Choose how you'd like to activate SiteOverlay Pro:</p>
                         
-                        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                            <button type="button" class="button button-primary" id="show-trial-form">Request New License</button>
-                            <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
-                        </div>
+                        <?php 
+                        $show_request_form = false;
+                        if ($license_status['state'] === 'unlicensed' ||
+                            $license_status['state'] === 'trial_expired' ||
+                            $license_status['state'] === 'trial_active') {
+                            $show_request_form = true;
+                        }
+                        ?>
+                        <?php if ($show_request_form): ?>
+                            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                                <button type="button" class="button button-primary" id="show-trial-form">Request New License</button>
+                                <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                            </div>
+                        <?php else: ?>
+                            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                                <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                            </div>
+                        <?php endif; ?>
                         
                         <!-- Trial Registration Form (Enhanced) -->
                         <div id="trial-registration-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
@@ -218,8 +232,13 @@ class SiteOverlay_Pro {
                             <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Select your license type and enter your details below.</p>
                             <div style="margin-bottom: 15px;">
                                 <label style="font-weight: bold; margin-bottom: 5px; display: block;">License Type:</label>
-                                <label><input type="radio" name="license-type" value="trial" checked> 14-Day Free Trial</label>
-                                <label style="margin-left: 20px;"><input type="radio" name="license-type" value="paid"> I Already Purchased (Get License)</label>
+                                <?php if ($this->is_trial_active()): ?>
+                                    <label><input type="radio" name="license-type" value="trial" disabled> 14-Day Free Trial (Already Active)</label>
+                                    <label style="margin-left: 20px;"><input type="radio" name="license-type" value="paid" checked> I Already Purchased (Get License)</label>
+                                <?php else: ?>
+                                    <label><input type="radio" name="license-type" value="trial" checked> 14-Day Free Trial</label>
+                                    <label style="margin-left: 20px;"><input type="radio" name="license-type" value="paid"> I Already Purchased (Get License)</label>
+                                <?php endif; ?>
                             </div>
                             <div style="margin-bottom: 15px;">
                                 <label for="full-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Full Name:</label>
