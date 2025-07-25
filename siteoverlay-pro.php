@@ -208,7 +208,7 @@ class SiteOverlay_Pro {
                         <p style="margin: 0 0 20px 0; color: #856404;">Choose how you'd like to activate SiteOverlay Pro:</p>
                         
                         <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                            <button type="button" class="button button-primary" id="show-trial-form">Start 14-Day Free Trial</button>
+                            <button type="button" class="button button-primary" id="show-trial-form">Request New License</button>
                             <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
                         </div>
                         
