@@ -346,12 +346,32 @@ class SiteOverlay_Pro {
                             </div>
                         </div>
                         
-                        <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                            <button type="button" class="button button-primary" id="show-paid-request-form">Request Paid License</button>
+                        </div>
                         
                         <div id="license-form" style="display: none; margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 5px;">
                             <h4 style="margin: 0 0 15px 0; color: #495057;">Enter Your License Key</h4>
                             <input type="text" id="upgrade-license-key" placeholder="Enter your license key" style="width: 300px; padding: 8px; margin-right: 10px;" />
                             <button type="button" class="button button-primary" id="validate-upgrade-license">Activate License</button>
+                        </div>
+                        
+                        <div id="paid-request-form" style="display: none; margin-top: 15px; background: #e7f3ff; padding: 15px; border-radius: 5px; border: 1px solid #b3d9ff;">
+                            <h4 style="margin: 0 0 15px 0; color: #0056b3;">📧 Request Your Paid License Key</h4>
+                            <p style="margin: 0 0 15px 0; color: #0056b3; font-size: 14px;">Already purchased? Enter your details below and we'll send your license key to your email.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-weight: bold; margin-bottom: 5px; display: block;">Full Name:</label>
+                                <input type="text" id="paid-full-name" placeholder="Enter your full name" style="width: 300px; padding: 8px;" />
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-weight: bold; margin-bottom: 5px; display: block;">Email Address:</label>
+                                <input type="email" id="paid-email-address" placeholder="Enter your email address" style="width: 300px; padding: 8px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="submit-paid-request">Send License Key</button>
                         </div>
                     </div>
                     
@@ -658,6 +678,60 @@ class SiteOverlay_Pro {
                         $(this).remove();
                     });
                 }
+            });
+            
+            // Paid license request form handlers (for trial_active state)
+            $('#show-paid-request-form').on('click', function() {
+                $('#paid-request-form').show();
+                $('#license-form').hide();
+                // Clear any previous messages
+                $('.paid-request-message').remove();
+            });
+            
+            $('#submit-paid-request').on('click', function() {
+                var fullName = $('#paid-full-name').val();
+                var email = $('#paid-email-address').val();
+                
+                if (!fullName) {
+                    alert('Please enter your full name');
+                    return;
+                }
+                if (!email) {
+                    alert('Please enter your email address');
+                    return;
+                }
+                
+                var $btn = $(this);
+                var originalText = $btn.text();
+                $btn.text('Sending...').prop('disabled', true);
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    timeout: 5000,
+                    data: {
+                        action: 'siteoverlay_request_paid_license',
+                        full_name: fullName,
+                        email: email,
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        $('.paid-request-message').remove();
+                        if (response.success) {
+                            $('#paid-request-form').append('<div class="paid-request-message" style="margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;"><strong>✅ Success!</strong> License sent to your email. Check your inbox and enter your license key to activate.</div>');
+                            $btn.text('Sent').prop('disabled', true);
+                        } else {
+                            $('#paid-request-form').append('<div class="paid-request-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;"><strong>❌ Error:</strong> ' + response.data.message + '</div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $('.paid-request-message').remove();
+                        $('#paid-request-form').append('<div class="paid-request-message" style="margin-top: 15px; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;"><strong>❌ Connection Error:</strong> ' + error + '</div>');
+                    },
+                    complete: function() {
+                        $btn.text(originalText).prop('disabled', false);
+                    }
+                });
             });
         });
         </script>
