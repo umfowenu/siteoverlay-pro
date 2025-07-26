@@ -74,6 +74,9 @@ class SiteOverlay_Pro {
                 require_once $enhancement_file;
             }
         }
+        
+        // Real-time license validation - check every 30 seconds
+        add_action('wp_loaded', array($this, 'validate_license_realtime'));
     }
     
     /**
@@ -1500,6 +1503,27 @@ class SiteOverlay_Pro {
             wp_send_json_error(array(
                 'message' => $data['message'] ?? 'Failed to process paid license request (Code: ' . $response_code . ')'
             ));
+        }
+    }
+    
+    /**
+     * Real-time license validation - check every 30 seconds
+     * Validates license with Railway API and deactivates if invalid
+     */
+    public function validate_license_realtime() {
+        $last_check = get_transient('siteoverlay_license_last_check');
+        if ($last_check === false) {
+            $license_key = get_option('siteoverlay_license_key');
+            if ($license_key) {
+                $validation_result = $this->validate_license_with_railway($license_key);
+                if (!$validation_result['success']) {
+                    // License is invalid - deactivate immediately
+                    update_option('siteoverlay_license_validated', false);
+                    delete_option('siteoverlay_license_key');
+                    delete_option('siteoverlay_license_status');
+                }
+            }
+            set_transient('siteoverlay_license_last_check', time(), 30); // 30 second cache
         }
     }
 }
