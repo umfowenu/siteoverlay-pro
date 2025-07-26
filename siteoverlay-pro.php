@@ -1088,7 +1088,7 @@ class SiteOverlay_Pro {
         $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-trial';
         
         $response = wp_remote_post($api_url, array(
-            'timeout' => 10,
+            'timeout' => 30,  // Increased from 10 to 30 seconds
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode($trial_data),
             'blocking' => true,
@@ -1175,7 +1175,7 @@ class SiteOverlay_Pro {
                 'siteUrl' => get_site_url()
             )),
             'headers' => array('Content-Type' => 'application/json'),
-            'timeout' => 10
+            'timeout' => 30  // Increased from 10 to 30 seconds
         ));
         
         if (is_wp_error($api_response)) {
@@ -1480,7 +1480,7 @@ class SiteOverlay_Pro {
         );
         $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-paid-license';
         $response = wp_remote_post($api_url, array(
-            'timeout' => 10,
+            'timeout' => 30,  // Increased from 10 to 30 seconds
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode($paid_data),
             'blocking' => true,
