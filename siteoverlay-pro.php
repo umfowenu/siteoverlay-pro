@@ -63,7 +63,8 @@ class SiteOverlay_Pro {
         }
         
         // CRITICAL FIX: Frontend overlay display ONLY when licensed
-        if ($this->is_licensed()) {
+        // Check license status on each page load (fast local check)
+        if ($this->should_display_overlay()) {
             add_action('wp_head', array($this, 'display_overlay'));
         }
         
@@ -1338,6 +1339,39 @@ class SiteOverlay_Pro {
     }
     
     /**
+     * Fast local check to determine if overlay should be displayed
+     * This is called on every page load but only checks local options (no API calls)
+     */
+    public function should_display_overlay() {
+        // Fast local checks only - no API calls
+        $license_key = get_option('siteoverlay_license_key');
+        $license_validated = get_option('siteoverlay_license_validated', false);
+        $license_status = get_option('siteoverlay_license_status');
+        
+        // No license key = no overlay
+        if (!$license_key) {
+            return false;
+        }
+        
+        // License not validated = no overlay
+        if (!$license_validated) {
+            return false;
+        }
+        
+        // Check license status
+        if ($license_status === 'trial') {
+            $expiry = get_option('siteoverlay_license_expiry');
+            if ($expiry && strtotime($expiry) < time()) {
+                // Trial expired - disable overlay
+                return false;
+            }
+        }
+        
+        // All checks passed - display overlay
+        return true;
+    }
+    
+    /**
      * Display admin notices for license and trial status
      */
     public function display_admin_notices() {
@@ -1521,25 +1555,42 @@ class SiteOverlay_Pro {
     }
     
     /**
-     * Background license validation - non-blocking
+     * Background license validation - non-blocking with result processing
      * Validates license with Railway API and deactivates if invalid
      */
     public function validate_license_background() {
         $license_key = get_option('siteoverlay_license_key');
         if ($license_key) {
-            // Use non-blocking API call
-            wp_remote_post($this->api_base_url . '/validate-license', array(
+            // Use blocking API call for validation (this runs in background cron)
+            $response = wp_remote_post($this->api_base_url . '/validate-license', array(
                 'body' => json_encode(array(
                     'licenseKey' => $license_key,
                     'siteUrl' => get_site_url()
                 )),
                 'headers' => array('Content-Type' => 'application/json'),
-                'timeout' => 10,  // Back to 10 seconds as per rules
-                'blocking' => false  // CRITICAL: Non-blocking
+                'timeout' => 10,  // Follow cursorrules: 5-10 seconds max
+                'blocking' => true  // OK in background cron
             ));
             
-            // Note: Since this is non-blocking, we can't process the response here
-            // The validation result will be checked on next page load via cached status
+            if (is_wp_error($response)) {
+                // Log error but don't disable plugin for connection issues
+                error_log('SiteOverlay: License validation connection error: ' . $response->get_error_message());
+                return;
+            }
+            
+            $body = wp_remote_retrieve_body($response);
+            $data = json_decode($body, true);
+            
+            if (!$data || !isset($data['success']) || !$data['success']) {
+                // License is invalid - deactivate immediately
+                update_option('siteoverlay_license_validated', false);
+                delete_option('siteoverlay_license_key');
+                delete_option('siteoverlay_license_status');
+                delete_option('siteoverlay_license_expiry');
+                
+                // Log the deactivation
+                error_log('SiteOverlay: License invalid - plugin deactivated');
+            }
         }
     }
 }
