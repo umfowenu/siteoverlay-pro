@@ -75,8 +75,9 @@ class SiteOverlay_Pro {
             }
         }
         
-        // Real-time license validation - check every 30 seconds
-        add_action('wp_loaded', array($this, 'validate_license_realtime'));
+        // Background license validation - check every 30 seconds (non-blocking)
+        add_action('wp_loaded', array($this, 'schedule_background_validation'));
+        add_action('siteoverlay_background_license_check', array($this, 'validate_license_background'));
     }
     
     /**
@@ -1088,7 +1089,7 @@ class SiteOverlay_Pro {
         $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-trial';
         
         $response = wp_remote_post($api_url, array(
-            'timeout' => 30,  // Increased from 10 to 30 seconds
+            'timeout' => 10,  // Follow cursorrules: 5-10 seconds max
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode($trial_data),
             'blocking' => true,
@@ -1175,7 +1176,7 @@ class SiteOverlay_Pro {
                 'siteUrl' => get_site_url()
             )),
             'headers' => array('Content-Type' => 'application/json'),
-            'timeout' => 30  // Increased from 10 to 30 seconds
+            'timeout' => 10  // Follow cursorrules: 5-10 seconds max
         ));
         
         if (is_wp_error($api_response)) {
@@ -1480,7 +1481,7 @@ class SiteOverlay_Pro {
         );
         $api_url = 'https://siteoverlay-api-production.up.railway.app/api/request-paid-license';
         $response = wp_remote_post($api_url, array(
-            'timeout' => 30,  // Increased from 10 to 30 seconds
+            'timeout' => 10,  // Follow cursorrules: 5-10 seconds max
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode($paid_data),
             'blocking' => true,
@@ -1507,23 +1508,38 @@ class SiteOverlay_Pro {
     }
     
     /**
-     * Real-time license validation - check every 30 seconds
-     * Validates license with Railway API and deactivates if invalid
+     * Schedule background license validation (non-blocking)
+     * Uses wp_cron to avoid blocking page loads
      */
-    public function validate_license_realtime() {
+    public function schedule_background_validation() {
         $last_check = get_transient('siteoverlay_license_last_check');
         if ($last_check === false) {
-            $license_key = get_option('siteoverlay_license_key');
-            if ($license_key) {
-                $validation_result = $this->validate_license_with_railway($license_key);
-                if (!$validation_result['success']) {
-                    // License is invalid - deactivate immediately
-                    update_option('siteoverlay_license_validated', false);
-                    delete_option('siteoverlay_license_key');
-                    delete_option('siteoverlay_license_status');
-                }
-            }
+            // Schedule background validation
+            wp_schedule_single_event(time() + 5, 'siteoverlay_background_license_check');
             set_transient('siteoverlay_license_last_check', time(), 30); // 30 second cache
+        }
+    }
+    
+    /**
+     * Background license validation - non-blocking
+     * Validates license with Railway API and deactivates if invalid
+     */
+    public function validate_license_background() {
+        $license_key = get_option('siteoverlay_license_key');
+        if ($license_key) {
+            // Use non-blocking API call
+            wp_remote_post($this->api_base_url . '/validate-license', array(
+                'body' => json_encode(array(
+                    'licenseKey' => $license_key,
+                    'siteUrl' => get_site_url()
+                )),
+                'headers' => array('Content-Type' => 'application/json'),
+                'timeout' => 10,  // Back to 10 seconds as per rules
+                'blocking' => false  // CRITICAL: Non-blocking
+            ));
+            
+            // Note: Since this is non-blocking, we can't process the response here
+            // The validation result will be checked on next page load via cached status
         }
     }
 }

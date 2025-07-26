@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 class SiteOverlay_Site_Tracker {
     
     private $api_base_url = 'https://siteoverlay-api-production.up.railway.app/api';
-    private $api_timeout = 30; // Increased from 10 to 30 seconds for better reliability
+    private $api_timeout = 10; // Follow cursorrules: 5-10 seconds max
     
     public function __construct() {
         // CONSTITUTIONAL RULE: Background operations only

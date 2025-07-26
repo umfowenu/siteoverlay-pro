@@ -531,7 +531,7 @@ class SiteOverlay_License_Manager {
         }
         
         $response = wp_remote_post($this->api_base_url . '/validate-license', array(
-            'timeout' => 30,  // Increased from 10 to 30 seconds
+            'timeout' => 10,  // Follow cursorrules: 5-10 seconds max
             'headers' => array('Content-Type' => 'application/json'),
             'body' => json_encode(array(
                 'licenseKey' => $license_key,
