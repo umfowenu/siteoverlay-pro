@@ -38,27 +38,31 @@ class SiteOverlay_Dynamic_Content_Manager {
         $cache_key = 'siteoverlay_dynamic_content';
         $cached_content = get_transient($cache_key);
         
-        if ($cached_content !== false) {
+        // Return cached content if available
+        if ($cached_content !== false && is_array($cached_content) && count($cached_content) > 0) {
+            error_log('SiteOverlay: Returning cached content (' . count($cached_content) . ' items)');
             return $cached_content;
         }
         
         // Fetch fresh content from API
+        error_log('SiteOverlay: Cache empty or invalid, fetching fresh content');
         $fresh_content = $this->fetch_content_from_api();
         
-        if ($fresh_content) {
+        if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
             // Cache successful API response
-            $cache_set = set_transient($cache_key, $fresh_content, $this->cache_duration);
-            
-            // Add debug logging to see if cache is being set
             error_log('SiteOverlay: Attempting to cache ' . count($fresh_content) . ' items');
+            $cache_set = set_transient($cache_key, $fresh_content, $this->cache_duration);
             error_log('SiteOverlay: Cache set result: ' . ($cache_set ? 'SUCCESS' : 'FAILED'));
-            error_log('SiteOverlay: Cache key: ' . $cache_key);
-            error_log('SiteOverlay: Cache duration: ' . $this->cache_duration . ' seconds');
+            
+            // Verify cache was set
+            $verify_cache = get_transient($cache_key);
+            error_log('SiteOverlay: Cache verification: ' . ($verify_cache ? 'FOUND' : 'NOT FOUND'));
             
             return $fresh_content;
         }
         
         // Fallback to default content if API fails
+        error_log('SiteOverlay: API failed, using default content');
         return $this->default_content;
     }
     

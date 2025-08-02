@@ -58,6 +58,7 @@ class SiteOverlay_Pro {
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
             add_action('wp_ajax_siteoverlay_refresh_content', array($this, 'ajax_refresh_content'));
+            add_action('wp_ajax_siteoverlay_force_cache', array($this, 'ajax_force_cache'));
         }
         
         // Frontend overlay display ALWAYS available (constitutional rule)
@@ -219,6 +220,18 @@ class SiteOverlay_Pro {
                 </div>
             </div>
             
+            <?php
+            // Force initial content load and cache if not already cached
+            if (isset($this->dynamic_content_manager)) {
+                $cached_check = get_transient('siteoverlay_dynamic_content');
+                if (!$cached_check) {
+                    // Force load content to establish cache
+                    $initial_content = $this->dynamic_content_manager->get_dynamic_content();
+                    error_log('SiteOverlay: Admin page forced initial cache load: ' . (is_array($initial_content) ? count($initial_content) . ' items' : 'failed'));
+                }
+            }
+            ?>
+            
             <!-- Debug Information Section -->
             <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
                 <h3 style="margin: 0 0 15px 0; color: #495057;">🔍 Debug Information</h3>
@@ -289,6 +302,7 @@ class SiteOverlay_Pro {
                 <div style="margin-top: 15px;">
                     <button type="button" onclick="location.reload()" class="button button-secondary">🔄 Refresh Debug Info</button>
                     <button type="button" onclick="testApiDirectly()" class="button button-secondary">🧪 Test API Directly</button>
+                    <button type="button" onclick="forceCache()" class="button button-primary">💾 Force Cache Now</button>
                 </div>
             </div>
             
@@ -800,6 +814,25 @@ class SiteOverlay_Pro {
             .catch(error => {
                 console.error('API Test Error:', error);
                 alert('❌ API Test FAILED! Error: ' + error.message + '. Check console for details.');
+            });
+        }
+        
+        // Force cache function
+        function forceCache() {
+            var data = {
+                action: 'siteoverlay_force_cache',
+                nonce: '<?php echo wp_create_nonce('siteoverlay_admin_nonce'); ?>'
+            };
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                alert(result.success ? '✅ ' + result.data : '❌ ' + result.data);
+                location.reload();
             });
         }
         </script>
@@ -1464,6 +1497,38 @@ class SiteOverlay_Pro {
                 wp_send_json_success('Content refreshed successfully. ' . count($fresh_content) . ' items loaded.');
             } else {
                 wp_send_json_error('Failed to fetch fresh content from API');
+            }
+        } else {
+            wp_send_json_error('Dynamic Content Manager not available');
+        }
+    }
+    
+    /**
+     * AJAX handler for forcing cache
+     */
+    public function ajax_force_cache() {
+        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_admin_nonce')) {
+            wp_send_json_error('Invalid nonce');
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        if (isset($this->dynamic_content_manager)) {
+            // Clear existing cache first
+            delete_transient('siteoverlay_dynamic_content');
+            
+            // Force fresh fetch and cache
+            $content = $this->dynamic_content_manager->get_dynamic_content();
+            
+            // Verify cache was set
+            $cached_verify = get_transient('siteoverlay_dynamic_content');
+            
+            if ($cached_verify && count($cached_verify) > 0) {
+                wp_send_json_success('Cache forced successfully! ' . count($cached_verify) . ' items cached.');
+            } else {
+                wp_send_json_error('Cache force failed - content: ' . (is_array($content) ? count($content) : 'none') . ', cached: ' . (is_array($cached_verify) ? count($cached_verify) : 'none'));
             }
         } else {
             wp_send_json_error('Dynamic Content Manager not available');
