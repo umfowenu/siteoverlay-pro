@@ -65,7 +65,7 @@ class SiteOverlay_Dynamic_Content_Manager {
             'license_type' => $this->get_current_license_type()
         );
         
-        $response = wp_remote_get($this->api_base_url . '/v1/dynamic-content', array(
+        $response = wp_remote_get($this->api_base_url . '/dynamic-content', array(
             'timeout' => $this->api_timeout,
             'headers' => array(
                 'X-Software-Type' => 'wordpress_plugin',
