@@ -57,6 +57,7 @@ class SiteOverlay_Pro {
             // License management AJAX handlers (always available)
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
+            add_action('wp_ajax_siteoverlay_refresh_content', array($this, 'ajax_refresh_content'));
         }
         
         // Frontend overlay display ALWAYS available (constitutional rule)
@@ -185,6 +186,23 @@ class SiteOverlay_Pro {
                     <h3 style="margin: 0 0 10px 0; color: #856404;">🚀 Get Xagio</h3>
                     <p style="margin: 0; color: #856404;">Boost your SEO rankings</p>
                     <a href="https://xagio.net/?ref=siteoverlay" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Xagio Now</a>
+                </div>
+                
+                <div style="background: #e2e3e5; border: 1px solid #d6d8db; padding: 20px; border-radius: 5px;">
+                    <h3 style="margin: 0 0 10px 0; color: #383d41;">🔄 Dynamic Content</h3>
+                    <?php if (isset($this->dynamic_content_manager)): ?>
+                        <?php 
+                        $cached_content = get_transient('siteoverlay_dynamic_content');
+                        $content_count = $cached_content ? count($cached_content) : 0;
+                        ?>
+                        <p style="margin: 0; color: #383d41;">
+                            <strong><?php echo $content_count; ?></strong> items cached<br>
+                            Cache: <?php echo $cached_content ? 'Active' : 'Empty'; ?>
+                        </p>
+                        <button type="button" onclick="refreshDynamicContent()" class="button button-secondary" style="margin-top: 10px;">Refresh Content</button>
+                    <?php else: ?>
+                        <p style="margin: 0; color: #721c24;">Dynamic Content Manager not loaded</p>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -632,6 +650,40 @@ class SiteOverlay_Pro {
                 }
             });
         });
+        
+        // Dynamic Content Refresh Function
+        function refreshDynamicContent() {
+            var button = event.target;
+            button.disabled = true;
+            button.textContent = 'Refreshing...';
+            
+            var data = {
+                action: 'siteoverlay_refresh_content',
+                nonce: '<?php echo wp_create_nonce('siteoverlay_admin_nonce'); ?>'
+            };
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.data);
+                }
+            })
+            .catch(error => {
+                alert('Error refreshing content');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.textContent = 'Refresh Content';
+            });
+        }
         </script>
         <?php
     }
@@ -1268,6 +1320,35 @@ class SiteOverlay_Pro {
                 </div>
                 <?php
                 break;
+        }
+    }
+    
+    /**
+     * AJAX handler for refreshing dynamic content
+     */
+    public function ajax_refresh_content() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_admin_nonce')) {
+            wp_send_json_error('Invalid nonce');
+        }
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        if (isset($this->dynamic_content_manager)) {
+            // Clear cache and fetch fresh content
+            $this->dynamic_content_manager->clear_cache();
+            $fresh_content = $this->dynamic_content_manager->get_dynamic_content();
+            
+            if ($fresh_content && count($fresh_content) > 0) {
+                wp_send_json_success('Content refreshed successfully. ' . count($fresh_content) . ' items loaded.');
+            } else {
+                wp_send_json_error('Failed to fetch fresh content from API');
+            }
+        } else {
+            wp_send_json_error('Dynamic Content Manager not available');
         }
     }
     

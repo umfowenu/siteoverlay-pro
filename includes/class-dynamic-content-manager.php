@@ -156,7 +156,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         $fresh_content = $this->fetch_content_from_api();
         
         return array(
-            'api_url' => $this->api_base_url . '/v1/dynamic-content',
+            'api_url' => $this->api_base_url . '/dynamic-content',
             'timeout' => $this->api_timeout,
             'fresh_content' => $fresh_content,
             'cached_content' => get_transient('siteoverlay_dynamic_content'),
