@@ -32,19 +32,24 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
-     * Get dynamic content with caching (using wp_options for reliability)
+     * Get dynamic content with DEEP DEBUGGING
      */
     public function get_dynamic_content() {
         $cache_key = 'siteoverlay_dynamic_content';
         $cache_expiry_key = 'siteoverlay_dynamic_content_expiry';
         
+        error_log('=== SITEOVERLAY DEBUG START ===');
+        
         // Use options table directly (bypass transients)
         $cached_content = get_option($cache_key, false);
         $cache_expiry = get_option($cache_expiry_key, 0);
         
+        error_log('STEP 1 - Cache check: ' . ($cached_content ? 'FOUND (' . count($cached_content) . ' items)' : 'NOT FOUND'));
+        error_log('STEP 1 - Expiry: ' . $cache_expiry . ' (current time: ' . time() . ')');
+        
         // Check if cache is expired
         if ($cached_content && time() > $cache_expiry) {
-            error_log('SiteOverlay: Options cache expired, clearing');
+            error_log('STEP 2 - Cache EXPIRED, clearing');
             $cached_content = false;
             delete_option($cache_key);
             delete_option($cache_expiry_key);
@@ -52,31 +57,50 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         // Return cached content if available
         if ($cached_content !== false && is_array($cached_content) && count($cached_content) > 0) {
-            error_log('SiteOverlay: Returning options-cached content (' . count($cached_content) . ' items)');
+            error_log('STEP 3 - Returning cached content (' . count($cached_content) . ' items)');
+            error_log('=== SITEOVERLAY DEBUG END (CACHED) ===');
             return $cached_content;
         }
         
         // Fetch fresh content from API
-        error_log('SiteOverlay: Cache empty, fetching fresh content from API');
+        error_log('STEP 4 - No valid cache, fetching from API');
         $fresh_content = $this->fetch_content_from_api();
         
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
-            error_log('SiteOverlay: API returned ' . count($fresh_content) . ' items, caching with options');
+            error_log('STEP 5 - API SUCCESS: Got ' . count($fresh_content) . ' items');
             
             // Cache using options table
             $expiry_time = time() + $this->cache_duration;
+            error_log('STEP 6 - Setting expiry to: ' . $expiry_time . ' (duration: ' . $this->cache_duration . ')');
+            
             $option_set = update_option($cache_key, $fresh_content);
+            error_log('STEP 7 - update_option result: ' . ($option_set ? 'TRUE' : 'FALSE'));
+            
             $expiry_set = update_option($cache_expiry_key, $expiry_time);
+            error_log('STEP 8 - update_option expiry result: ' . ($expiry_set ? 'TRUE' : 'FALSE'));
             
-            // Verify options storage
+            // Verify options storage IMMEDIATELY
             $verify_options = get_option($cache_key);
-            error_log('SiteOverlay: Options cache result: ' . ($verify_options ? 'SUCCESS (' . count($verify_options) . ' items)' : 'FAILED'));
+            $verify_expiry = get_option($cache_expiry_key);
             
+            error_log('STEP 9 - IMMEDIATE verify content: ' . ($verify_options ? 'FOUND (' . count($verify_options) . ' items)' : 'NOT FOUND'));
+            error_log('STEP 10 - IMMEDIATE verify expiry: ' . ($verify_expiry ? 'FOUND (' . $verify_expiry . ')' : 'NOT FOUND'));
+            
+            // Check database directly
+            global $wpdb;
+            $db_check = $wpdb->get_var($wpdb->prepare(
+                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s",
+                $cache_key
+            ));
+            error_log('STEP 11 - DIRECT DB check: ' . ($db_check ? 'FOUND in database' : 'NOT FOUND in database'));
+            
+            error_log('=== SITEOVERLAY DEBUG END (FRESH) ===');
             return $fresh_content;
         }
         
         // Fallback to default content if API fails
-        error_log('SiteOverlay: API failed, using default content');
+        error_log('STEP 12 - API FAILED, using default content');
+        error_log('=== SITEOVERLAY DEBUG END (DEFAULT) ===');
         return $this->default_content;
     }
     

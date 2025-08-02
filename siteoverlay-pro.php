@@ -1582,23 +1582,27 @@ class SiteOverlay_Pro {
         }
         
         if (isset($this->dynamic_content_manager)) {
+            error_log('=== FORCE CACHE START ===');
+            
             // Clear existing cache
             delete_option('siteoverlay_dynamic_content');
             delete_option('siteoverlay_dynamic_content_expiry');
-            error_log('SiteOverlay: Force cache - cleared options cache');
+            error_log('FORCE CACHE: Cleared existing options');
             
             // Force fresh fetch
             $content = $this->dynamic_content_manager->get_dynamic_content();
-            error_log('SiteOverlay: Force cache - fetched: ' . (is_array($content) ? count($content) . ' items' : 'none'));
+            error_log('FORCE CACHE: get_dynamic_content returned: ' . (is_array($content) ? count($content) . ' items' : 'NOT ARRAY'));
             
             // Verify cache in options table
             $cached_verify = get_option('siteoverlay_dynamic_content', false);
-            error_log('SiteOverlay: Force cache - options verify: ' . ($cached_verify ? count($cached_verify) . ' items' : 'empty'));
+            error_log('FORCE CACHE: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items found' : 'NOTHING FOUND'));
+            
+            error_log('=== FORCE CACHE END ===');
             
             if ($cached_verify && count($cached_verify) > 0) {
-                wp_send_json_success('✅ Cache forced successfully using OPTIONS! ' . count($cached_verify) . ' items cached. (Transients bypassed due to hosting issue)');
+                wp_send_json_success('✅ Cache forced successfully! ' . count($cached_verify) . ' items cached. Check error log for detailed trace.');
             } else {
-                wp_send_json_error('❌ Options cache also failed. Hosting environment may have restrictions. Content: ' . (is_array($content) ? count($content) : 'none') . ' items');
+                wp_send_json_error('❌ Cache failed despite good API data. Check WordPress error log for detailed trace. Content received: ' . (is_array($content) ? count($content) : 'none') . ' items');
             }
         } else {
             wp_send_json_error('Dynamic Content Manager not available');
