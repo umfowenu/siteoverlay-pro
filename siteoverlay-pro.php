@@ -572,40 +572,10 @@ class SiteOverlay_Pro {
                     <p>No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>">Create your first overlay</a></p>
                 <?php endif; ?>
             </div>
-            
-            <!-- Newsletter Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center;">
-                <h3 style="margin: 0 0 15px 0; color: #856404;">📧 Get SEO & Rank & Rent Tips</h3>
-                <p style="margin: 0 0 15px 0; color: #856404;">Subscribe to our newsletter for free tips and updates</p>
-                <input type="email" id="newsletter-email-admin" placeholder="Enter your email" style="padding: 8px; width: 300px; margin-right: 10px;" />
-                <button type="button" class="button button-primary" id="subscribe-newsletter-admin">Subscribe</button>
-            </div>
         </div>
         
         <script>
         jQuery(document).ready(function($) {
-            // Newsletter signup
-            $('#subscribe-newsletter-admin').on('click', function() {
-                var email = $('#newsletter-email-admin').val();
-                if (!email) {
-                    alert('Please enter your email address');
-                    return;
-                }
-                
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_newsletter_signup',
-                    email: email,
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        alert('Thank you for subscribing!');
-                        $('#newsletter-email-admin').val('');
-                    } else {
-                        alert('Error: ' + response.data);
-                    }
-                });
-            });
-            
             // License functionality
             $('#show-trial-form').on('click', function() {
                 $('#trial-registration-form').show();
@@ -947,19 +917,11 @@ class SiteOverlay_Pro {
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
-                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
-                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
-                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
-                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
-                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
-            </div>
-            
-            <!-- Email Newsletter Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
-                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
-                <input type="email" id="newsletter-email" placeholder="Enter your email" 
-                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
-                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
+                <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
+                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_disclaimer', 'Affiliate Link - We earn a commission at no cost to you')); ?></div>
             </div>
         </div>
         <?php
@@ -983,11 +945,11 @@ class SiteOverlay_Pro {
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
-                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
-                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
-                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
-                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
-                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
+                <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
+                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_disclaimer', 'Affiliate Link - We earn a commission at no cost to you')); ?></div>
             </div>
             
             <!-- Current Overlay Section -->
@@ -1018,14 +980,6 @@ class SiteOverlay_Pro {
                     <button type="button" class="button button-primary" id="save-overlay" style="font-size: 11px; padding: 2px 6px; width: 100%;">Save Overlay</button>
                 </div>
             <?php endif; ?>
-            
-            <!-- Email Newsletter Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
-                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
-                <input type="email" id="newsletter-email" placeholder="Enter your email" 
-                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
-                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
-            </div>
             
             <!-- Stats Section -->
             <div style="padding: 8px 12px; color: #666; font-size: 10px; border-top: 1px solid #ddd;">
@@ -1506,6 +1460,17 @@ class SiteOverlay_Pro {
     }
     
     /**
+     * Get dynamic content with fallback
+     */
+    public function get_dynamic_content($key, $fallback = '') {
+        if (isset($this->dynamic_content_manager)) {
+            $content = $this->dynamic_content_manager->get_dynamic_content();
+            return isset($content[$key]) ? $content[$key] : $fallback;
+        }
+        return $fallback;
+    }
+    
+    /**
      * AJAX handler for refreshing dynamic content
      */
     public function ajax_refresh_content() {
@@ -1551,20 +1516,36 @@ class SiteOverlay_Pro {
             delete_transient('siteoverlay_dynamic_content');
             delete_option('siteoverlay_dynamic_content');
             delete_option('siteoverlay_dynamic_content_expiry');
+            error_log('SiteOverlay: Force cache - cleared existing cache');
             
             // Force fresh fetch and cache
             $content = $this->dynamic_content_manager->get_dynamic_content();
+            error_log('SiteOverlay: Force cache - got content: ' . (is_array($content) ? count($content) . ' items' : 'none'));
             
-            // Verify cache was set
+            // Wait briefly and verify cache was set
+            sleep(1);
             $cached_verify = get_transient('siteoverlay_dynamic_content');
             if (!$cached_verify) {
                 $cached_verify = get_option('siteoverlay_dynamic_content', false);
             }
+            error_log('SiteOverlay: Force cache - verification: ' . ($cached_verify ? count($cached_verify) . ' items found' : 'cache empty'));
             
             if ($cached_verify && count($cached_verify) > 0) {
                 wp_send_json_success('Cache forced successfully! ' . count($cached_verify) . ' items cached.');
             } else {
-                wp_send_json_error('Cache force failed - content: ' . (is_array($content) ? count($content) : 'none') . ', cached: ' . (is_array($cached_verify) ? count($cached_verify) : 'none'));
+                // Try manual cache setting as fallback
+                if (is_array($content) && count($content) > 0) {
+                    $manual_cache = set_transient('siteoverlay_dynamic_content', $content, 3600);
+                    $manual_verify = get_transient('siteoverlay_dynamic_content');
+                    
+                    if ($manual_verify) {
+                        wp_send_json_success('Cache forced with manual setting! ' . count($manual_verify) . ' items cached.');
+                    } else {
+                        wp_send_json_error('Cache force failed - manual setting also failed. Content: ' . count($content) . ' items, but cache won\'t store.');
+                    }
+                } else {
+                    wp_send_json_error('Cache force failed - no content to cache');
+                }
             }
         } else {
             wp_send_json_error('Dynamic Content Manager not available');
