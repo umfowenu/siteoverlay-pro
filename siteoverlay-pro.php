@@ -219,6 +219,72 @@ class SiteOverlay_Pro {
                 </div>
             </div>
             
+            <!-- Debug Information Section -->
+            <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 15px 0; color: #495057;">🔍 Debug Information</h3>
+                
+                <?php if (isset($this->dynamic_content_manager)): ?>
+                    <?php
+                    // Test API connection live
+                    $debug_info = $this->dynamic_content_manager->debug_api_connection();
+                    $cached_content = get_transient('siteoverlay_dynamic_content');
+                    ?>
+                    
+                    <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">
+                        <strong>API Connection Test:</strong><br>
+                        URL: <?php echo esc_html($debug_info['api_url']); ?><br>
+                        Timeout: <?php echo esc_html($debug_info['timeout']); ?> seconds<br>
+                        Fresh Content: <?php echo $debug_info['fresh_content'] ? '<span style="color: green;">✅ SUCCESS (' . count($debug_info['fresh_content']) . ' items)</span>' : '<span style="color: red;">❌ FAILED</span>'; ?><br>
+                        Cached Content: <?php echo $cached_content ? '<span style="color: green;">✅ ' . count($cached_content) . ' items cached</span>' : '<span style="color: orange;">⚠️ No cache</span>'; ?><br>
+                    </div>
+                    
+                    <?php if ($debug_info['fresh_content'] && count($debug_info['fresh_content']) > 0): ?>
+                        <div style="background: #d4edda; padding: 10px; border-radius: 3px; margin-bottom: 10px;">
+                            <strong>✅ API Working - Sample Content:</strong><br>
+                            <div style="font-family: monospace; font-size: 11px; margin-top: 5px;">
+                                <?php 
+                                $sample_keys = array('preview_title_text', 'preview_button_text', 'xagio_affiliate_url');
+                                foreach ($sample_keys as $key):
+                                    if (isset($debug_info['fresh_content'][$key])):
+                                ?>
+                                    <?php echo esc_html($key); ?>: <?php echo esc_html(substr($debug_info['fresh_content'][$key], 0, 50)); ?>...<br>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div style="background: #f8d7da; padding: 10px; border-radius: 3px; margin-bottom: 10px;">
+                            <strong>❌ API Not Working</strong><br>
+                            <span style="font-size: 11px;">The plugin cannot fetch content from the Railway API. Possible causes:</span>
+                            <ul style="font-size: 11px; margin: 5px 0;">
+                                <li>WordPress cannot make external HTTP requests</li>
+                                <li>SSL certificate issues</li>
+                                <li>Firewall blocking outbound connections</li>
+                                <li>API server temporarily unavailable</li>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div style="background: white; padding: 10px; border-radius: 3px; font-size: 11px;">
+                        <strong>Current Dynamic Content Status:</strong><br>
+                        Xagio URL: <?php echo esc_html($this->get_dynamic_xagio_affiliate_url()); ?><br>
+                        Upgrade Message: <?php echo esc_html($this->get_dynamic_upgrade_message()); ?><br>
+                    </div>
+                    
+                <?php else: ?>
+                    <div style="background: #f8d7da; padding: 10px; border-radius: 3px;">
+                        <strong>❌ Dynamic Content Manager Not Loaded</strong>
+                    </div>
+                <?php endif; ?>
+                
+                <div style="margin-top: 15px;">
+                    <button type="button" onclick="location.reload()" class="button button-secondary">🔄 Refresh Debug Info</button>
+                    <button type="button" onclick="testApiDirectly()" class="button button-secondary">🧪 Test API Directly</button>
+                </div>
+            </div>
+            
             <!-- License Status Section -->
             <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
                 <h2>License Status</h2>
@@ -695,6 +761,38 @@ class SiteOverlay_Pro {
             .finally(() => {
                 button.disabled = false;
                 button.textContent = 'Refresh Content';
+            });
+        }
+        
+        // Direct API test function
+        function testApiDirectly() {
+            const apiUrl = 'https://siteoverlay-api-production.up.railway.app/api/dynamic-content';
+            
+            // Show loading
+            alert('Testing API directly... Check browser console for results.');
+            
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'X-Software-Type': 'wordpress_plugin',
+                    'User-Agent': 'SiteOverlay-Pro-Plugin/2.0.1'
+                }
+            })
+            .then(response => {
+                console.log('API Response Status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response Data:', data);
+                if (data.success && data.content) {
+                    alert('✅ API Test SUCCESS! Found ' + Object.keys(data.content).length + ' content items. Check console for details.');
+                } else {
+                    alert('❌ API Test FAILED! Response received but format is wrong. Check console for details.');
+                }
+            })
+            .catch(error => {
+                console.error('API Test Error:', error);
+                alert('❌ API Test FAILED! Error: ' + error.message + '. Check console for details.');
             });
         }
         </script>
