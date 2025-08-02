@@ -32,11 +32,27 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
-     * Get dynamic content with caching
+     * Get dynamic content with caching (using wp_options as fallback)
      */
     public function get_dynamic_content() {
         $cache_key = 'siteoverlay_dynamic_content';
+        $cache_expiry_key = 'siteoverlay_dynamic_content_expiry';
+        
+        // Try WordPress transients first
         $cached_content = get_transient($cache_key);
+        
+        // Fallback to options table if transients broken
+        if ($cached_content === false) {
+            $cached_content = get_option($cache_key, false);
+            $cache_expiry = get_option($cache_expiry_key, 0);
+            
+            // Check if options-based cache is expired
+            if ($cached_content && time() > $cache_expiry) {
+                $cached_content = false;
+                delete_option($cache_key);
+                delete_option($cache_expiry_key);
+            }
+        }
         
         // Return cached content if available
         if ($cached_content !== false && is_array($cached_content) && count($cached_content) > 0) {
@@ -49,14 +65,25 @@ class SiteOverlay_Dynamic_Content_Manager {
         $fresh_content = $this->fetch_content_from_api();
         
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
-            // Cache successful API response
             error_log('SiteOverlay: Attempting to cache ' . count($fresh_content) . ' items');
-            $cache_set = set_transient($cache_key, $fresh_content, $this->cache_duration);
-            error_log('SiteOverlay: Cache set result: ' . ($cache_set ? 'SUCCESS' : 'FAILED'));
             
-            // Verify cache was set
-            $verify_cache = get_transient($cache_key);
-            error_log('SiteOverlay: Cache verification: ' . ($verify_cache ? 'FOUND' : 'NOT FOUND'));
+            // Try transients first
+            $cache_set = set_transient($cache_key, $fresh_content, $this->cache_duration);
+            $verify_transient = get_transient($cache_key);
+            
+            if (!$verify_transient) {
+                // Transients broken, use options table
+                error_log('SiteOverlay: Transients broken, using options table fallback');
+                $expiry_time = time() + $this->cache_duration;
+                update_option($cache_key, $fresh_content);
+                update_option($cache_expiry_key, $expiry_time);
+                
+                // Verify options storage
+                $verify_options = get_option($cache_key);
+                error_log('SiteOverlay: Options cache set: ' . ($verify_options ? 'SUCCESS' : 'FAILED'));
+            } else {
+                error_log('SiteOverlay: Transient cache set: SUCCESS');
+            }
             
             return $fresh_content;
         }
@@ -220,10 +247,13 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
-     * Clear content cache
+     * Clear content cache (both transients and options)
      */
     public function clear_cache() {
         delete_transient('siteoverlay_dynamic_content');
+        delete_option('siteoverlay_dynamic_content');
+        delete_option('siteoverlay_dynamic_content_expiry');
+        error_log('SiteOverlay: Cache cleared (both transients and options)');
     }
     
     /**
@@ -232,6 +262,9 @@ class SiteOverlay_Dynamic_Content_Manager {
     public function debug_api_connection() {
         $fresh_content = $this->fetch_content_from_api();
         $cached_content = get_transient('siteoverlay_dynamic_content');
+        if (!$cached_content) {
+            $cached_content = get_option('siteoverlay_dynamic_content', false);
+        }
         
         // Test cache setting
         $cache_test_result = 'SKIPPED';

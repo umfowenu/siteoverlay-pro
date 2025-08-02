@@ -194,6 +194,9 @@ class SiteOverlay_Pro {
                     <?php if (isset($this->dynamic_content_manager)): ?>
                         <?php 
                         $cached_content = get_transient('siteoverlay_dynamic_content');
+                        if (!$cached_content) {
+                            $cached_content = get_option('siteoverlay_dynamic_content', false);
+                        }
                         $content_count = $cached_content ? count($cached_content) : 0;
                         
                         // Add debug information
@@ -225,6 +228,9 @@ class SiteOverlay_Pro {
             if (isset($this->dynamic_content_manager)) {
                 $cached_check = get_transient('siteoverlay_dynamic_content');
                 if (!$cached_check) {
+                    $cached_check = get_option('siteoverlay_dynamic_content', false);
+                }
+                if (!$cached_check) {
                     // Force load content to establish cache
                     $initial_content = $this->dynamic_content_manager->get_dynamic_content();
                     error_log('SiteOverlay: Admin page forced initial cache load: ' . (is_array($initial_content) ? count($initial_content) . ' items' : 'failed'));
@@ -241,6 +247,9 @@ class SiteOverlay_Pro {
                     // Test API connection live
                     $debug_info = $this->dynamic_content_manager->debug_api_connection();
                     $cached_content = get_transient('siteoverlay_dynamic_content');
+                    if (!$cached_content) {
+                        $cached_content = get_option('siteoverlay_dynamic_content', false);
+                    }
                     ?>
                     
                     <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">
@@ -291,6 +300,28 @@ class SiteOverlay_Pro {
                         <strong>Current Dynamic Content Status:</strong><br>
                         Xagio URL: <?php echo esc_html($this->get_dynamic_xagio_affiliate_url()); ?><br>
                         Upgrade Message: <?php echo esc_html($this->get_dynamic_upgrade_message()); ?><br>
+                    </div>
+                    
+                    <!-- WordPress Environment Diagnostics -->
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 3px; margin-top: 10px;">
+                        <strong>WordPress Environment:</strong><br>
+                        <div style="font-family: monospace; font-size: 11px;">
+                            WordPress Version: <?php echo get_bloginfo('version'); ?><br>
+                            PHP Version: <?php echo PHP_VERSION; ?><br>
+                            Object Cache: <?php echo wp_using_ext_object_cache() ? 'External (Redis/Memcached)' : 'Default'; ?><br>
+                            Transient Test: <?php 
+                                $test_transient = set_transient('test_transient_123', 'test_value', 60);
+                                $get_test_transient = get_transient('test_transient_123');
+                                delete_transient('test_transient_123');
+                                echo ($test_transient && $get_test_transient) ? '<span style="color: green;">WORKING</span>' : '<span style="color: red;">BROKEN</span>';
+                            ?><br>
+                            Options Test: <?php 
+                                $test_option = update_option('test_option_123', 'test_value');
+                                $get_test_option = get_option('test_option_123');
+                                delete_option('test_option_123');
+                                echo ($test_option && $get_test_option) ? '<span style="color: green;">WORKING</span>' : '<span style="color: red;">BROKEN</span>';
+                            ?><br>
+                        </div>
                     </div>
                     
                 <?php else: ?>
@@ -1518,12 +1549,17 @@ class SiteOverlay_Pro {
         if (isset($this->dynamic_content_manager)) {
             // Clear existing cache first
             delete_transient('siteoverlay_dynamic_content');
+            delete_option('siteoverlay_dynamic_content');
+            delete_option('siteoverlay_dynamic_content_expiry');
             
             // Force fresh fetch and cache
             $content = $this->dynamic_content_manager->get_dynamic_content();
             
             // Verify cache was set
             $cached_verify = get_transient('siteoverlay_dynamic_content');
+            if (!$cached_verify) {
+                $cached_verify = get_option('siteoverlay_dynamic_content', false);
+            }
             
             if ($cached_verify && count($cached_verify) > 0) {
                 wp_send_json_success('Cache forced successfully! ' . count($cached_verify) . ' items cached.');
