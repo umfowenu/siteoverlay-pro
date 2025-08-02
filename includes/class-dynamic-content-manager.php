@@ -35,8 +35,8 @@ class SiteOverlay_Dynamic_Content_Manager {
      * Get dynamic content with DEEP DEBUGGING
      */
     public function get_dynamic_content() {
-        $cache_key = 'siteoverlay_dynamic_content';
-        $cache_expiry_key = 'siteoverlay_dynamic_content_expiry';
+        $cache_key = 'siteoverlay_cache';
+        $cache_expiry_key = 'siteoverlay_cache_expiry';
         
         error_log('=== SITEOVERLAY DEBUG START ===');
         
@@ -262,9 +262,9 @@ class SiteOverlay_Dynamic_Content_Manager {
      */
     public function clear_cache() {
         // Clear both transients (if they worked) and options
-        delete_transient('siteoverlay_dynamic_content');
-        delete_option('siteoverlay_dynamic_content');
-        delete_option('siteoverlay_dynamic_content_expiry');
+        delete_transient('siteoverlay_cache');
+        delete_option('siteoverlay_cache');
+        delete_option('siteoverlay_cache_expiry');
         error_log('SiteOverlay: Cache cleared (both transients and options)');
     }
     

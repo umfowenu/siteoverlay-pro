@@ -389,7 +389,7 @@ class SiteOverlay_Pro {
                         echo '• Total Options: ' . $options_count . '<br>';
                         
                         // Check for our specific option
-                        $our_option = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'siteoverlay_dynamic_content'));
+                        $our_option = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'siteoverlay_cache'));
                         echo '• Our Cache in DB: ' . ($our_option ? '✅ FOUND' : '❌ NOT FOUND') . '</p>';
                         ?>
                     </div>
@@ -404,8 +404,8 @@ class SiteOverlay_Pro {
                             echo '<strong>Testing cache storage step-by-step:</strong><br><br>';
                             
                             // Clear cache first
-                            delete_option('siteoverlay_dynamic_content');
-                            delete_option('siteoverlay_dynamic_content_expiry');
+                            delete_option('siteoverlay_cache');
+                            delete_option('siteoverlay_cache_expiry');
                             echo '✓ STEP 1: Cleared existing cache<br>';
                             
                             // Test API fetch (use the private method via reflection for testing)
@@ -418,7 +418,7 @@ class SiteOverlay_Pro {
                             
                             if (is_array($fresh_content) && count($fresh_content) > 0) {
                                 // Test cache storage
-                                $cache_key = 'siteoverlay_dynamic_content';
+                                $cache_key = 'siteoverlay_cache';
                                 $expiry_time = time() + 3600;
                                 
                                 echo '✓ STEP 3: Attempting to store in options table...<br>';
@@ -1660,37 +1660,48 @@ class SiteOverlay_Pro {
             $debug_steps = array();
             
             // Clear existing cache
-            delete_option('siteoverlay_dynamic_content');
-            delete_option('siteoverlay_dynamic_content_expiry');
+            delete_option('siteoverlay_cache');
+            delete_option('siteoverlay_cache_expiry');
             $debug_steps[] = '✓ STEP 1: Cleared existing cache';
             
             // Force fresh fetch
             $content = $this->dynamic_content_manager->get_dynamic_content();
-            $debug_steps[] = '✓ STEP 2: API returned: ' . (is_array($content) ? count($content) . ' items' : 'FAILED');
             
-            // Verify cache in options table
-            $cached_verify = get_option('siteoverlay_dynamic_content', false);
-            $debug_steps[] = '✓ STEP 3: Cache verification: ' . ($cached_verify ? count($cached_verify) . ' items stored' : 'STORAGE FAILED');
-            
-            // Database direct check
-            global $wpdb;
-            $db_check = $wpdb->get_var($wpdb->prepare(
-                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 
-                'siteoverlay_dynamic_content'
-            ));
-            $debug_steps[] = '✓ STEP 4: Database check: ' . ($db_check ? 'FOUND in DB' : 'NOT FOUND in DB');
-            
-            // Test data type if found
-            if ($db_check) {
-                $unserialized = maybe_unserialize($db_check);
-                $debug_steps[] = '✓ STEP 5: Data type: ' . gettype($unserialized) . (is_array($unserialized) ? ' (' . count($unserialized) . ' items)' : '');
+            // Test direct storage (bypass the get_dynamic_content method)
+            if (is_array($content) && count($content) > 0) {
+                $debug_steps[] = '✓ STEP 2: API returned: ' . count($content) . ' items';
+                
+                // Test direct option storage
+                $cache_key = 'siteoverlay_cache'; // Use shorter name
+                $option_result = update_option($cache_key, $content);
+                $debug_steps[] = '✓ STEP 3: Direct update_option() result: ' . ($option_result ? 'TRUE' : 'FALSE');
+                
+                // Immediate verification
+                $verify_immediate = get_option($cache_key, false);
+                $debug_steps[] = '✓ STEP 4: Immediate get_option() result: ' . ($verify_immediate ? count($verify_immediate) . ' items' : 'NOT FOUND');
+                
+                // Database direct check
+                global $wpdb;
+                $db_check = $wpdb->get_var($wpdb->prepare(
+                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 
+                    $cache_key
+                ));
+                $debug_steps[] = '✓ STEP 5: Database direct check: ' . ($db_check ? 'FOUND' : 'NOT FOUND');
+                
+            } else {
+                $debug_steps[] = '❌ STEP 2: API failed or returned invalid data';
             }
             
+            // Final cache verification using plugin method
+            $cached_verify = get_option('siteoverlay_cache', false);
+            $debug_steps[] = '✓ STEP 6: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items stored' : 'STORAGE FAILED');
+            
             // Test if option name is blocked
-            $test_option = update_option('test_siteoverlay_cache_' . time(), array('test' => 'data'));
-            $test_verify = get_option('test_siteoverlay_cache_' . time(), false);
-            $debug_steps[] = '✓ STEP 6: Option storage test: ' . ($test_verify ? 'WORKING' : 'BLOCKED');
-            delete_option('test_siteoverlay_cache_' . time());
+            $test_key = 'test_siteoverlay_cache_' . time();
+            $test_option = update_option($test_key, array('test' => 'data'));
+            $test_verify = get_option($test_key, false);
+            $debug_steps[] = '✓ STEP 7: Option storage test: ' . ($test_verify ? 'WORKING' : 'BLOCKED');
+            delete_option($test_key);
             
             $debug_output = implode('<br>', $debug_steps);
             
