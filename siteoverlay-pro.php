@@ -194,11 +194,24 @@ class SiteOverlay_Pro {
                         <?php 
                         $cached_content = get_transient('siteoverlay_dynamic_content');
                         $content_count = $cached_content ? count($cached_content) : 0;
+                        
+                        // Add debug information
+                        if ($content_count === 0 && isset($this->dynamic_content_manager)) {
+                            // Try to get debug info
+                            $debug_info = $this->dynamic_content_manager->debug_api_connection();
+                        }
                         ?>
                         <p style="margin: 0; color: #383d41;">
                             <strong><?php echo $content_count; ?></strong> items cached<br>
                             Cache: <?php echo $cached_content ? 'Active' : 'Empty'; ?>
                         </p>
+                        <?php if ($content_count === 0 && isset($debug_info)): ?>
+                            <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                                Debug: API URL = <?php echo esc_html($debug_info['api_url']); ?><br>
+                                Fresh content: <?php echo ($debug_info['fresh_content'] ? 'Available' : 'Failed'); ?><br>
+                                Check WordPress error log for details.
+                            </div>
+                        <?php endif; ?>
                         <button type="button" onclick="refreshDynamicContent()" class="button button-secondary" style="margin-top: 10px;">Refresh Content</button>
                     <?php else: ?>
                         <p style="margin: 0; color: #721c24;">Dynamic Content Manager not loaded</p>

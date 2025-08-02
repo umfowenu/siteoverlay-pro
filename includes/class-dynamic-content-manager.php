@@ -65,6 +65,13 @@ class SiteOverlay_Dynamic_Content_Manager {
             'license_type' => $this->get_current_license_type()
         );
         
+        // Add debug logging
+        error_log('SiteOverlay: Attempting API call to: ' . $this->api_base_url . '/dynamic-content');
+        error_log('SiteOverlay: Request headers: ' . print_r(array(
+            'X-Software-Type' => 'wordpress_plugin',
+            'User-Agent' => 'SiteOverlay-Pro-Plugin/2.0.1'
+        ), true));
+        
         $response = wp_remote_get($this->api_base_url . '/dynamic-content', array(
             'timeout' => $this->api_timeout,
             'headers' => array(
@@ -75,8 +82,12 @@ class SiteOverlay_Dynamic_Content_Manager {
         ));
         
         if (is_wp_error($response)) {
-            error_log('SiteOverlay Dynamic Content API Error: ' . $response->get_error_message());
+            error_log('SiteOverlay: API call failed with WP_Error: ' . $response->get_error_message());
+            error_log('SiteOverlay: WP_Error code: ' . $response->get_error_code());
             return false;
+        } else {
+            error_log('SiteOverlay: API call successful, response code: ' . wp_remote_retrieve_response_code($response));
+            error_log('SiteOverlay: Response body length: ' . strlen(wp_remote_retrieve_body($response)));
         }
         
         $response_code = wp_remote_retrieve_response_code($response);
@@ -90,6 +101,61 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         if (isset($data['success']) && $data['success'] && isset($data['content'])) {
             // Convert Railway API format to plugin format
+            $formatted_content = array();
+            foreach ($data['content'] as $key => $item) {
+                if (isset($item['value'])) {
+                    $formatted_content[$key] = $item['value'];
+                }
+            }
+            return $formatted_content;
+        }
+        
+        // Try cURL fallback if wp_remote_get failed
+        error_log('SiteOverlay: wp_remote_get failed, trying cURL fallback');
+        return $this->fetch_content_from_api_curl();
+    }
+    
+    /**
+     * Fallback API fetch using cURL if wp_remote_get fails
+     */
+    private function fetch_content_from_api_curl() {
+        if (!function_exists('curl_init')) {
+            error_log('SiteOverlay: cURL not available');
+            return false;
+        }
+        
+        $url = $this->api_base_url . '/dynamic-content';
+        error_log('SiteOverlay: Trying cURL fallback to: ' . $url);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $this->api_timeout);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'X-Software-Type: wordpress_plugin',
+            'User-Agent: SiteOverlay-Pro-Plugin/2.0.1'
+        ));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For SSL issues
+        
+        $body = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            error_log('SiteOverlay: cURL error: ' . $error);
+            return false;
+        }
+        
+        if ($http_code !== 200) {
+            error_log('SiteOverlay: cURL returned HTTP ' . $http_code);
+            return false;
+        }
+        
+        error_log('SiteOverlay: cURL success, response length: ' . strlen($body));
+        $data = json_decode($body, true);
+        
+        if (isset($data['success']) && $data['success'] && isset($data['content'])) {
             $formatted_content = array();
             foreach ($data['content'] as $key => $item) {
                 if (isset($item['value'])) {
