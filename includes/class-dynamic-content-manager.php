@@ -32,58 +32,45 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
-     * Get dynamic content with caching (using wp_options as fallback)
+     * Get dynamic content with caching (using wp_options as fallback for broken transients)
      */
     public function get_dynamic_content() {
         $cache_key = 'siteoverlay_dynamic_content';
         $cache_expiry_key = 'siteoverlay_dynamic_content_expiry';
         
-        // Try WordPress transients first
-        $cached_content = get_transient($cache_key);
+        // Skip transients entirely - use options table
+        $cached_content = get_option($cache_key, false);
+        $cache_expiry = get_option($cache_expiry_key, 0);
         
-        // Fallback to options table if transients broken
-        if ($cached_content === false) {
-            $cached_content = get_option($cache_key, false);
-            $cache_expiry = get_option($cache_expiry_key, 0);
-            
-            // Check if options-based cache is expired
-            if ($cached_content && time() > $cache_expiry) {
-                $cached_content = false;
-                delete_option($cache_key);
-                delete_option($cache_expiry_key);
-            }
+        // Check if options-based cache is expired
+        if ($cached_content && time() > $cache_expiry) {
+            error_log('SiteOverlay: Options cache expired, clearing');
+            $cached_content = false;
+            delete_option($cache_key);
+            delete_option($cache_expiry_key);
         }
         
         // Return cached content if available
         if ($cached_content !== false && is_array($cached_content) && count($cached_content) > 0) {
-            error_log('SiteOverlay: Returning cached content (' . count($cached_content) . ' items)');
+            error_log('SiteOverlay: Returning options-cached content (' . count($cached_content) . ' items)');
             return $cached_content;
         }
         
         // Fetch fresh content from API
-        error_log('SiteOverlay: Cache empty or invalid, fetching fresh content');
+        error_log('SiteOverlay: Cache empty, fetching fresh content from API');
         $fresh_content = $this->fetch_content_from_api();
         
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
-            error_log('SiteOverlay: Attempting to cache ' . count($fresh_content) . ' items');
+            error_log('SiteOverlay: API returned ' . count($fresh_content) . ' items, caching with options');
             
-            // Try transients first
-            $cache_set = set_transient($cache_key, $fresh_content, $this->cache_duration);
-            $verify_transient = get_transient($cache_key);
+            // Cache using options table (bypass broken transients)
+            $expiry_time = time() + $this->cache_duration;
+            $option_set = update_option($cache_key, $fresh_content);
+            $expiry_set = update_option($cache_expiry_key, $expiry_time);
             
-            if (!$verify_transient) {
-                // Transients broken, use options table
-                error_log('SiteOverlay: Transients broken, using options table fallback');
-                $expiry_time = time() + $this->cache_duration;
-                update_option($cache_key, $fresh_content);
-                update_option($cache_expiry_key, $expiry_time);
-                
-                // Verify options storage
-                $verify_options = get_option($cache_key);
-                error_log('SiteOverlay: Options cache set: ' . ($verify_options ? 'SUCCESS' : 'FAILED'));
-            } else {
-                error_log('SiteOverlay: Transient cache set: SUCCESS');
-            }
+            // Verify options storage
+            $verify_options = get_option($cache_key);
+            error_log('SiteOverlay: Options cache result: ' . ($verify_options ? 'SUCCESS (' . count($verify_options) . ' items)' : 'FAILED'));
             
             return $fresh_content;
         }
@@ -247,9 +234,10 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
-     * Clear content cache (both transients and options)
+     * Clear content cache (options table version)
      */
     public function clear_cache() {
+        // Clear both transients (if they worked) and options
         delete_transient('siteoverlay_dynamic_content');
         delete_option('siteoverlay_dynamic_content');
         delete_option('siteoverlay_dynamic_content_expiry');

@@ -193,10 +193,8 @@ class SiteOverlay_Pro {
                     <h3 style="margin: 0 0 10px 0; color: #383d41;">🔄 Dynamic Content</h3>
                     <?php if (isset($this->dynamic_content_manager)): ?>
                         <?php 
-                        $cached_content = get_transient('siteoverlay_dynamic_content');
-                        if (!$cached_content) {
-                            $cached_content = get_option('siteoverlay_dynamic_content', false);
-                        }
+                        // Check cache status using options table instead of transients
+                        $cached_content = get_option('siteoverlay_dynamic_content', false);
                         $content_count = $cached_content ? count($cached_content) : 0;
                         
                         // Add debug information
@@ -226,10 +224,7 @@ class SiteOverlay_Pro {
             <?php
             // Force initial content load and cache if not already cached
             if (isset($this->dynamic_content_manager)) {
-                $cached_check = get_transient('siteoverlay_dynamic_content');
-                if (!$cached_check) {
-                    $cached_check = get_option('siteoverlay_dynamic_content', false);
-                }
+                $cached_check = get_option('siteoverlay_dynamic_content', false);
                 if (!$cached_check) {
                     // Force load content to establish cache
                     $initial_content = $this->dynamic_content_manager->get_dynamic_content();
@@ -246,10 +241,7 @@ class SiteOverlay_Pro {
                     <?php
                     // Test API connection live
                     $debug_info = $this->dynamic_content_manager->debug_api_connection();
-                    $cached_content = get_transient('siteoverlay_dynamic_content');
-                    if (!$cached_content) {
-                        $cached_content = get_option('siteoverlay_dynamic_content', false);
-                    }
+                    $cached_content = get_option('siteoverlay_dynamic_content', false);
                     ?>
                     
                     <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">
@@ -257,7 +249,19 @@ class SiteOverlay_Pro {
                         URL: <?php echo esc_html($debug_info['api_url']); ?><br>
                         Timeout: <?php echo esc_html($debug_info['timeout']); ?> seconds<br>
                         Fresh Content: <?php echo $debug_info['fresh_content'] ? '<span style="color: green;">✅ SUCCESS (' . count($debug_info['fresh_content']) . ' items)</span>' : '<span style="color: red;">❌ FAILED</span>'; ?><br>
-                        Cached Content: <?php echo $cached_content ? '<span style="color: green;">✅ ' . count($cached_content) . ' items cached</span>' : '<span style="color: orange;">⚠️ No cache</span>'; ?><br>
+                        Cached Content: <?php 
+                        if ($cached_content && is_array($cached_content)) {
+                            echo '<span style="color: green;">✅ OPTIONS CACHE (' . count($cached_content) . ' items)</span>';
+                            echo '<br><small>First 3 items: ';
+                            $first_three = array_slice($cached_content, 0, 3, true);
+                            foreach ($first_three as $key => $value) {
+                                echo $key . ': ' . substr($value, 0, 30) . '...<br>';
+                            }
+                            echo '</small>';
+                        } else {
+                            echo '<span style="color: orange;">⚠️ No cache (using options table)</span>';
+                        }
+                        ?><br>
                         Cache Test: <?php 
                             if (isset($debug_info['cache_test'])) {
                                 echo $debug_info['cache_test'] === 'WORKING' ? '<span style="color: green;">✅ WORKING</span>' : '<span style="color: red;">❌ FAILED</span>';
@@ -1512,40 +1516,23 @@ class SiteOverlay_Pro {
         }
         
         if (isset($this->dynamic_content_manager)) {
-            // Clear existing cache first
-            delete_transient('siteoverlay_dynamic_content');
+            // Clear existing cache
             delete_option('siteoverlay_dynamic_content');
             delete_option('siteoverlay_dynamic_content_expiry');
-            error_log('SiteOverlay: Force cache - cleared existing cache');
+            error_log('SiteOverlay: Force cache - cleared options cache');
             
-            // Force fresh fetch and cache
+            // Force fresh fetch
             $content = $this->dynamic_content_manager->get_dynamic_content();
-            error_log('SiteOverlay: Force cache - got content: ' . (is_array($content) ? count($content) . ' items' : 'none'));
+            error_log('SiteOverlay: Force cache - fetched: ' . (is_array($content) ? count($content) . ' items' : 'none'));
             
-            // Wait briefly and verify cache was set
-            sleep(1);
-            $cached_verify = get_transient('siteoverlay_dynamic_content');
-            if (!$cached_verify) {
-                $cached_verify = get_option('siteoverlay_dynamic_content', false);
-            }
-            error_log('SiteOverlay: Force cache - verification: ' . ($cached_verify ? count($cached_verify) . ' items found' : 'cache empty'));
+            // Verify cache in options table
+            $cached_verify = get_option('siteoverlay_dynamic_content', false);
+            error_log('SiteOverlay: Force cache - options verify: ' . ($cached_verify ? count($cached_verify) . ' items' : 'empty'));
             
             if ($cached_verify && count($cached_verify) > 0) {
-                wp_send_json_success('Cache forced successfully! ' . count($cached_verify) . ' items cached.');
+                wp_send_json_success('✅ Cache forced successfully using OPTIONS! ' . count($cached_verify) . ' items cached. (Transients bypassed due to hosting issue)');
             } else {
-                // Try manual cache setting as fallback
-                if (is_array($content) && count($content) > 0) {
-                    $manual_cache = set_transient('siteoverlay_dynamic_content', $content, 3600);
-                    $manual_verify = get_transient('siteoverlay_dynamic_content');
-                    
-                    if ($manual_verify) {
-                        wp_send_json_success('Cache forced with manual setting! ' . count($manual_verify) . ' items cached.');
-                    } else {
-                        wp_send_json_error('Cache force failed - manual setting also failed. Content: ' . count($content) . ' items, but cache won\'t store.');
-                    }
-                } else {
-                    wp_send_json_error('Cache force failed - no content to cache');
-                }
+                wp_send_json_error('❌ Options cache also failed. Hosting environment may have restrictions. Content: ' . (is_array($content) ? count($content) : 'none') . ' items');
             }
         } else {
             wp_send_json_error('Dynamic Content Manager not available');
