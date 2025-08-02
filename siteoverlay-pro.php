@@ -394,6 +394,81 @@ class SiteOverlay_Pro {
                         ?>
                     </div>
                     
+                    <!-- LIVE DEBUG OUTPUT -->
+                    <div style="background: #e3f2fd; border: 1px solid #2196f3; padding: 15px; margin-bottom: 15px; border-radius: 3px;">
+                        <h4 style="margin: 0 0 10px 0; color: #1976d2;">🔍 LIVE DEBUG TEST</h4>
+                        
+                        <?php
+                        if (isset($this->dynamic_content_manager)) {
+                            echo '<div style="font-family: monospace; font-size: 12px; background: white; padding: 10px; border-radius: 3px;">';
+                            echo '<strong>Testing cache storage step-by-step:</strong><br><br>';
+                            
+                            // Clear cache first
+                            delete_option('siteoverlay_dynamic_content');
+                            delete_option('siteoverlay_dynamic_content_expiry');
+                            echo '✓ STEP 1: Cleared existing cache<br>';
+                            
+                            // Test API fetch (use the private method via reflection for testing)
+                            $reflection = new ReflectionClass($this->dynamic_content_manager);
+                            $fetch_method = $reflection->getMethod('fetch_content_from_api');
+                            $fetch_method->setAccessible(true);
+                            $fresh_content = $fetch_method->invoke($this->dynamic_content_manager);
+                            
+                            echo '✓ STEP 2: API fetch - ' . (is_array($fresh_content) ? count($fresh_content) . ' items received' : 'FAILED') . '<br>';
+                            
+                            if (is_array($fresh_content) && count($fresh_content) > 0) {
+                                // Test cache storage
+                                $cache_key = 'siteoverlay_dynamic_content';
+                                $expiry_time = time() + 3600;
+                                
+                                echo '✓ STEP 3: Attempting to store in options table...<br>';
+                                $option_set = update_option($cache_key, $fresh_content);
+                                echo '✓ STEP 4: update_option() returned: ' . ($option_set ? 'TRUE' : 'FALSE') . '<br>';
+                                
+                                $expiry_set = update_option($cache_key . '_expiry', $expiry_time);
+                                echo '✓ STEP 5: update_option() expiry returned: ' . ($expiry_set ? 'TRUE' : 'FALSE') . '<br>';
+                                
+                                // Immediate verification
+                                $verify_content = get_option($cache_key, false);
+                                echo '✓ STEP 6: Immediate get_option() check: ' . ($verify_content ? count($verify_content) . ' items found' : 'NOT FOUND') . '<br>';
+                                
+                                // Database direct check
+                                global $wpdb;
+                                $db_check = $wpdb->get_var($wpdb->prepare(
+                                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 
+                                    $cache_key
+                                ));
+                                echo '✓ STEP 7: Direct database check: ' . ($db_check ? 'FOUND in database' : 'NOT FOUND in database') . '<br>';
+                                
+                                // Try to unserialize the data
+                                if ($db_check) {
+                                    $unserialized = maybe_unserialize($db_check);
+                                    echo '✓ STEP 8: Database data type: ' . gettype($unserialized) . '<br>';
+                                    if (is_array($unserialized)) {
+                                        echo '✓ STEP 9: Database contains ' . count($unserialized) . ' items<br>';
+                                        echo '✓ STEP 10: Sample data: ' . substr(print_r(array_slice($unserialized, 0, 2, true), true), 0, 200) . '...<br>';
+                                    } else {
+                                        echo '❌ STEP 9: Database data is not an array!<br>';
+                                    }
+                                }
+                                
+                                // Test if WordPress is blocking the option name
+                                $test_option = update_option('test_siteoverlay_cache', array('test' => 'data'));
+                                $test_verify = get_option('test_siteoverlay_cache', false);
+                                delete_option('test_siteoverlay_cache');
+                                echo '✓ STEP 11: Test option storage: ' . ($test_verify ? 'WORKING' : 'BLOCKED') . '<br>';
+                                
+                            } else {
+                                echo '❌ API fetch failed, cannot test cache storage<br>';
+                            }
+                            
+                            echo '</div>';
+                        } else {
+                            echo '<div style="color: red;">Dynamic Content Manager not available</div>';
+                        }
+                        ?>
+                    </div>
+                    
                 <?php else: ?>
                     <div style="background: #f8d7da; padding: 10px; border-radius: 3px;">
                         <strong>❌ Dynamic Content Manager Not Loaded</strong>
@@ -1582,27 +1657,47 @@ class SiteOverlay_Pro {
         }
         
         if (isset($this->dynamic_content_manager)) {
-            error_log('=== FORCE CACHE START ===');
+            $debug_steps = array();
             
             // Clear existing cache
             delete_option('siteoverlay_dynamic_content');
             delete_option('siteoverlay_dynamic_content_expiry');
-            error_log('FORCE CACHE: Cleared existing options');
+            $debug_steps[] = '✓ STEP 1: Cleared existing cache';
             
             // Force fresh fetch
             $content = $this->dynamic_content_manager->get_dynamic_content();
-            error_log('FORCE CACHE: get_dynamic_content returned: ' . (is_array($content) ? count($content) . ' items' : 'NOT ARRAY'));
+            $debug_steps[] = '✓ STEP 2: API returned: ' . (is_array($content) ? count($content) . ' items' : 'FAILED');
             
             // Verify cache in options table
             $cached_verify = get_option('siteoverlay_dynamic_content', false);
-            error_log('FORCE CACHE: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items found' : 'NOTHING FOUND'));
+            $debug_steps[] = '✓ STEP 3: Cache verification: ' . ($cached_verify ? count($cached_verify) . ' items stored' : 'STORAGE FAILED');
             
-            error_log('=== FORCE CACHE END ===');
+            // Database direct check
+            global $wpdb;
+            $db_check = $wpdb->get_var($wpdb->prepare(
+                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 
+                'siteoverlay_dynamic_content'
+            ));
+            $debug_steps[] = '✓ STEP 4: Database check: ' . ($db_check ? 'FOUND in DB' : 'NOT FOUND in DB');
+            
+            // Test data type if found
+            if ($db_check) {
+                $unserialized = maybe_unserialize($db_check);
+                $debug_steps[] = '✓ STEP 5: Data type: ' . gettype($unserialized) . (is_array($unserialized) ? ' (' . count($unserialized) . ' items)' : '');
+            }
+            
+            // Test if option name is blocked
+            $test_option = update_option('test_siteoverlay_cache_' . time(), array('test' => 'data'));
+            $test_verify = get_option('test_siteoverlay_cache_' . time(), false);
+            $debug_steps[] = '✓ STEP 6: Option storage test: ' . ($test_verify ? 'WORKING' : 'BLOCKED');
+            delete_option('test_siteoverlay_cache_' . time());
+            
+            $debug_output = implode('<br>', $debug_steps);
             
             if ($cached_verify && count($cached_verify) > 0) {
-                wp_send_json_success('✅ Cache forced successfully! ' . count($cached_verify) . ' items cached. Check error log for detailed trace.');
+                wp_send_json_success('✅ CACHE SUCCESS! ' . count($cached_verify) . ' items cached.<br><br><strong>Debug Steps:</strong><br>' . $debug_output);
             } else {
-                wp_send_json_error('❌ Cache failed despite good API data. Check WordPress error log for detailed trace. Content received: ' . (is_array($content) ? count($content) : 'none') . ' items');
+                wp_send_json_error('❌ CACHE FAILED!<br><br><strong>Debug Steps:</strong><br>' . $debug_output . '<br><br><strong>Content received:</strong> ' . (is_array($content) ? count($content) : 'none') . ' items');
             }
         } else {
             wp_send_json_error('Dynamic Content Manager not available');
