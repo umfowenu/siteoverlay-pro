@@ -32,17 +32,17 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
-     * Get dynamic content with caching (using wp_options as fallback for broken transients)
+     * Get dynamic content with caching (using wp_options for reliability)
      */
     public function get_dynamic_content() {
         $cache_key = 'siteoverlay_dynamic_content';
         $cache_expiry_key = 'siteoverlay_dynamic_content_expiry';
         
-        // Skip transients entirely - use options table
+        // Use options table directly (bypass transients)
         $cached_content = get_option($cache_key, false);
         $cache_expiry = get_option($cache_expiry_key, 0);
         
-        // Check if options-based cache is expired
+        // Check if cache is expired
         if ($cached_content && time() > $cache_expiry) {
             error_log('SiteOverlay: Options cache expired, clearing');
             $cached_content = false;
@@ -63,7 +63,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
             error_log('SiteOverlay: API returned ' . count($fresh_content) . ' items, caching with options');
             
-            // Cache using options table (bypass broken transients)
+            // Cache using options table
             $expiry_time = time() + $this->cache_duration;
             $option_set = update_option($cache_key, $fresh_content);
             $expiry_set = update_option($cache_expiry_key, $expiry_time);
