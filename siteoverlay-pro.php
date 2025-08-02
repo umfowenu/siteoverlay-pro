@@ -236,6 +236,13 @@ class SiteOverlay_Pro {
                         Timeout: <?php echo esc_html($debug_info['timeout']); ?> seconds<br>
                         Fresh Content: <?php echo $debug_info['fresh_content'] ? '<span style="color: green;">✅ SUCCESS (' . count($debug_info['fresh_content']) . ' items)</span>' : '<span style="color: red;">❌ FAILED</span>'; ?><br>
                         Cached Content: <?php echo $cached_content ? '<span style="color: green;">✅ ' . count($cached_content) . ' items cached</span>' : '<span style="color: orange;">⚠️ No cache</span>'; ?><br>
+                        Cache Test: <?php 
+                            if (isset($debug_info['cache_test'])) {
+                                echo $debug_info['cache_test'] === 'WORKING' ? '<span style="color: green;">✅ WORKING</span>' : '<span style="color: red;">❌ FAILED</span>';
+                            } else {
+                                echo '<span style="color: gray;">Not tested</span>';
+                            }
+                        ?><br>
                     </div>
                     
                     <?php if ($debug_info['fresh_content'] && count($debug_info['fresh_content']) > 0): ?>
