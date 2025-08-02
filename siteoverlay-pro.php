@@ -328,6 +328,72 @@ class SiteOverlay_Pro {
                         </div>
                     </div>
                     
+                    <!-- EMERGENCY HOSTING DIAGNOSTICS -->
+                    <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin-bottom: 15px; border-radius: 3px;">
+                        <h4 style="margin: 0 0 10px 0; color: #d32f2f;">🚨 EMERGENCY HOSTING DIAGNOSTICS</h4>
+                        
+                        <?php
+                        // Test 1: Basic WordPress functionality
+                        echo '<p><strong>WordPress Core Functions:</strong><br>';
+                        echo '• get_option(): ' . (function_exists('get_option') ? '✅' : '❌') . '<br>';
+                        echo '• update_option(): ' . (function_exists('update_option') ? '✅' : '❌') . '<br>';
+                        echo '• delete_option(): ' . (function_exists('delete_option') ? '✅' : '❌') . '<br>';
+                        echo '• get_transient(): ' . (function_exists('get_transient') ? '✅' : '❌') . '<br>';
+                        echo '• set_transient(): ' . (function_exists('set_transient') ? '✅' : '❌') . '</p>';
+                        
+                        // Test 2: Database write permissions
+                        $test_key = 'siteoverlay_diagnostic_test_' . time();
+                        $test_value = 'diagnostic_test_data';
+                        
+                        echo '<p><strong>Database Write Test:</strong><br>';
+                        
+                        // Try options table
+                        $option_write = update_option($test_key, $test_value);
+                        $option_read = get_option($test_key, 'NOT_FOUND');
+                        $option_delete = delete_option($test_key);
+                        
+                        echo '• Options Write: ' . ($option_write ? '✅' : '❌') . '<br>';
+                        echo '• Options Read: ' . ($option_read === $test_value ? '✅' : '❌ (got: ' . $option_read . ')') . '<br>';
+                        echo '• Options Delete: ' . ($option_delete ? '✅' : '❌') . '<br>';
+                        
+                        // Try transients
+                        $transient_write = set_transient($test_key, $test_value, 60);
+                        $transient_read = get_transient($test_key);
+                        $transient_delete = delete_transient($test_key);
+                        
+                        echo '• Transient Write: ' . ($transient_write ? '✅' : '❌') . '<br>';
+                        echo '• Transient Read: ' . ($transient_read === $test_value ? '✅' : '❌ (got: ' . ($transient_read ?: 'NULL') . ')') . '<br>';
+                        echo '• Transient Delete: ' . ($transient_delete ? '✅' : '❌') . '</p>';
+                        
+                        // Test 3: Hosting environment info
+                        echo '<p><strong>Hosting Environment:</strong><br>';
+                        echo '• PHP Version: ' . PHP_VERSION . '<br>';
+                        echo '• WordPress Version: ' . get_bloginfo('version') . '<br>';
+                        echo '• Memory Limit: ' . ini_get('memory_limit') . '<br>';
+                        echo '• Object Cache: ' . (wp_using_ext_object_cache() ? 'External' : 'Default') . '<br>';
+                        echo '• Database: ' . (defined('DB_NAME') ? DB_NAME : 'Unknown') . '<br>';
+                        echo '• WP_DEBUG: ' . (defined('WP_DEBUG') && WP_DEBUG ? 'ON' : 'OFF') . '</p>';
+                        
+                        // Test 4: File system permissions
+                        $upload_dir = wp_upload_dir();
+                        echo '<p><strong>File System:</strong><br>';
+                        echo '• Uploads Writable: ' . (is_writable($upload_dir['basedir']) ? '✅' : '❌') . '<br>';
+                        echo '• Plugin Dir: ' . plugin_dir_path(__FILE__) . '<br>';
+                        echo '• Plugin Writable: ' . (is_writable(plugin_dir_path(__FILE__)) ? '✅' : '❌') . '</p>';
+                        
+                        // Test 5: Current options table status
+                        global $wpdb;
+                        $options_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options}");
+                        echo '<p><strong>Database Status:</strong><br>';
+                        echo '• Options Table Accessible: ' . ($options_count !== null ? '✅' : '❌') . '<br>';
+                        echo '• Total Options: ' . $options_count . '<br>';
+                        
+                        // Check for our specific option
+                        $our_option = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'siteoverlay_dynamic_content'));
+                        echo '• Our Cache in DB: ' . ($our_option ? '✅ FOUND' : '❌ NOT FOUND') . '</p>';
+                        ?>
+                    </div>
+                    
                 <?php else: ?>
                     <div style="background: #f8d7da; padding: 10px; border-radius: 3px;">
                         <strong>❌ Dynamic Content Manager Not Loaded</strong>
