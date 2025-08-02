@@ -91,9 +91,9 @@ class SiteOverlay_Dynamic_Content_Manager {
         if (isset($data['success']) && $data['success'] && isset($data['content'])) {
             // Convert Railway API format to plugin format
             $formatted_content = array();
-            foreach ($data['content'] as $item) {
-                if (isset($item['content_key']) && isset($item['content_value'])) {
-                    $formatted_content[$item['content_key']] = $item['content_value'];
+            foreach ($data['content'] as $key => $item) {
+                if (isset($item['value'])) {
+                    $formatted_content[$key] = $item['value'];
                 }
             }
             return $formatted_content;
