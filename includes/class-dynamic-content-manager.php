@@ -65,11 +65,12 @@ class SiteOverlay_Dynamic_Content_Manager {
             'license_type' => $this->get_current_license_type()
         );
         
-        $response = wp_remote_post($this->api_base_url . '/dynamic-content', array(
+        $response = wp_remote_get($this->api_base_url . '/v1/dynamic-content', array(
             'timeout' => $this->api_timeout,
-            'headers' => array('Content-Type' => 'application/json'),
-            'body' => json_encode($request_data),
-            'blocking' => true,
+            'headers' => array(
+                'X-Software-Type' => 'wordpress_plugin',
+                'User-Agent' => 'SiteOverlay-Pro-Plugin/2.0.1'
+            ),
             'sslverify' => true
         ));
         
@@ -88,7 +89,14 @@ class SiteOverlay_Dynamic_Content_Manager {
         $data = json_decode($body, true);
         
         if (isset($data['success']) && $data['success'] && isset($data['content'])) {
-            return $data['content'];
+            // Convert Railway API format to plugin format
+            $formatted_content = array();
+            foreach ($data['content'] as $item) {
+                if (isset($item['content_key']) && isset($item['content_value'])) {
+                    $formatted_content[$item['content_key']] = $item['content_value'];
+                }
+            }
+            return $formatted_content;
         }
         
         return false;
@@ -148,7 +156,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         $fresh_content = $this->fetch_content_from_api();
         
         return array(
-            'api_url' => $this->api_base_url . '/dynamic-content',
+            'api_url' => $this->api_base_url . '/v1/dynamic-content',
             'timeout' => $this->api_timeout,
             'fresh_content' => $fresh_content,
             'cached_content' => get_transient('siteoverlay_dynamic_content'),
