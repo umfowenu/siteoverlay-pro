@@ -49,29 +49,30 @@ class SiteOverlay_Pro {
             add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
             add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
             
-            // AJAX handlers for overlay functionality - ONLY when licensed
-            if ($this->is_licensed()) {
-                add_action('wp_ajax_siteoverlay_save_url', array($this, 'ajax_save_overlay'));
-                add_action('wp_ajax_siteoverlay_remove_url', array($this, 'ajax_remove_overlay'));
-                add_action('wp_ajax_siteoverlay_preview_url', array($this, 'ajax_preview_overlay'));
-            }
+                    // AJAX handlers for overlay functionality - ALWAYS available (constitutional rule)
+        add_action('wp_ajax_siteoverlay_save_url', array($this, 'ajax_save_overlay'));
+        add_action('wp_ajax_siteoverlay_remove_url', array($this, 'ajax_remove_overlay'));
+        add_action('wp_ajax_siteoverlay_preview_url', array($this, 'ajax_preview_overlay'));
             
             // License management AJAX handlers (always available)
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
         }
         
-        // CRITICAL FIX: Frontend overlay display ONLY when licensed
-        if ($this->is_licensed()) {
-            add_action('wp_head', array($this, 'display_overlay'));
+        // Frontend overlay display ALWAYS available (constitutional rule)
+        add_action('wp_head', array($this, 'display_overlay'));
+        
+        // Load overlay enhancement (always available - constitutional rule)
+        $enhancement_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-overlay-enhancement.php';
+        if (file_exists($enhancement_file)) {
+            require_once $enhancement_file;
         }
         
-        // Load overlay enhancement (optional, modular) - ONLY when licensed
-        if ($this->is_licensed()) {
-            $enhancement_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-overlay-enhancement.php';
-            if (file_exists($enhancement_file)) {
-                require_once $enhancement_file;
-            }
+        // Load dynamic content manager (always available - constitutional rule)
+        $dynamic_content_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-dynamic-content-manager.php';
+        if (file_exists($dynamic_content_file)) {
+            require_once $dynamic_content_file;
+            $this->dynamic_content_manager = new SiteOverlay_Dynamic_Content_Manager();
         }
     }
     
@@ -163,17 +164,14 @@ class SiteOverlay_Pro {
             
             <!-- Status Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <?php if ($license_status['features_enabled']): ?>
+                <!-- Plugin always active (constitutional rule) -->
                 <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px;">
                     <h3 style="margin: 0 0 10px 0; color: #155724;">✓ Plugin Active</h3>
                     <p style="margin: 0; color: #155724;">SiteOverlay Pro is running successfully</p>
+                    <?php if (!$license_status['features_enabled']): ?>
+                    <p style="margin: 5px 0 0 0; color: #856404; font-size: 12px;">💡 Activate license for premium features</p>
+                    <?php endif; ?>
                 </div>
-                <?php else: ?>
-                <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px;">
-                    <h3 style="margin: 0 0 10px 0; color: #721c24;">🔒 Plugin Inactive</h3>
-                    <p style="margin: 0; color: #721c24;">Activate your license to use SiteOverlay Pro</p>
-                </div>
-                <?php endif; ?>
                 
                 <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px;">
                     <h3 style="margin: 0 0 10px 0; color: #0c5460;">📊 Usage Statistics</h3>
@@ -389,11 +387,10 @@ class SiteOverlay_Pro {
                 <div id="license-response" style="margin-top: 10px;"></div>
             </div>
             
-            <!-- Recent Overlays - Only show when licensed -->
-            <?php if ($license_status['features_enabled']): ?>
-                <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-                    <h2>Recent Overlays</h2>
-                    <?php if ($recent_overlays): ?>
+            <!-- Recent Overlays - Always available (constitutional rule) -->
+            <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
+                <h2>Recent Overlays</h2>
+                <?php if ($recent_overlays): ?>
                         <table class="wp-list-table widefat fixed striped">
                             <thead>
                                 <tr>
@@ -422,24 +419,10 @@ class SiteOverlay_Pro {
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
-                    <?php else: ?>
-                        <p>No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>">Create your first overlay</a></p>
-                    <?php endif; ?>
-                </div>
-            <?php else: ?>
-                <!-- Overlay Features Locked -->
-                <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; margin-bottom: 20px; text-align: center;">
-                    <h2>🔒 Overlay Features Locked</h2>
-                    <p style="margin: 0 0 15px 0; color: #6c757d;">Activate your license to unlock overlay functionality and start creating overlays for your posts and pages.</p>
-                    <p style="margin: 0; color: #6c757d;"><strong>Features you'll get:</strong></p>
-                    <ul style="text-align: left; display: inline-block; margin: 15px 0; color: #6c757d;">
-                        <li>Add overlay URLs to any post or page</li>
-                        <li>Track overlay views and performance</li>
-                        <li>Preview overlays before publishing</li>
-                        <li>Full overlay management interface</li>
-                    </ul>
-                </div>
-            <?php endif; ?>
+                <?php else: ?>
+                    <p>No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>">Create your first overlay</a></p>
+                <?php endif; ?>
+            </div>
             
             <!-- Newsletter Section -->
             <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center;">
@@ -677,15 +660,9 @@ class SiteOverlay_Pro {
     public function render_meta_box($post) {
         wp_nonce_field('siteoverlay_overlay_nonce', 'siteoverlay_overlay_nonce');
         
-        $license_status = $this->get_license_status();
-        
-        if ($license_status['features_enabled']) {
-            // LICENSED STATE: Show full overlay functionality
-            $this->render_licensed_meta_box($post);
-        } else {
-            // UNLICENSED STATE: Show disabled message with trial/purchase options
-            $this->render_unlicensed_meta_box($post);
-        }
+        // CONSTITUTIONAL RULE: Always show full functionality
+        // License status only affects messaging, never functionality
+        $this->render_licensed_meta_box($post);
     }
     
     private function render_unlicensed_meta_box($post) {
@@ -1292,6 +1269,26 @@ class SiteOverlay_Pro {
                 <?php
                 break;
         }
+    }
+    
+    /**
+     * Get dynamic upgrade message (always available)
+     */
+    public function get_dynamic_upgrade_message() {
+        if (isset($this->dynamic_content_manager)) {
+            return $this->dynamic_content_manager->get_upgrade_message();
+        }
+        return 'Upgrade to unlock all SiteOverlay Pro features';
+    }
+    
+    /**
+     * Get dynamic Xagio affiliate URL (always available)
+     */
+    public function get_dynamic_xagio_affiliate_url() {
+        if (isset($this->dynamic_content_manager)) {
+            return $this->dynamic_content_manager->get_xagio_affiliate_url();
+        }
+        return 'https://xagio.net/?ref=siteoverlay';
     }
     
     /**
