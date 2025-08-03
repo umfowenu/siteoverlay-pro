@@ -578,6 +578,21 @@ class SiteOverlay_Pro {
                                 
                                 // DIRECT STORAGE DEBUG TEST
                                 echo '<br><strong>🚨 DIRECT STORAGE DEBUG TEST:</strong><br>';
+
+                                // FORCE ENABLE DEBUG FOR THIS TEST
+                                if (!defined('WP_DEBUG')) {
+                                    define('WP_DEBUG', true);
+                                }
+                                if (!defined('WP_DEBUG_LOG')) {
+                                    define('WP_DEBUG_LOG', true);
+                                }
+
+                                // CAPTURE ERROR LOG OUTPUT DIRECTLY
+                                ob_start();
+                                error_reporting(E_ALL);
+                                ini_set('log_errors', 1);
+                                ini_set('error_log', '/tmp/siteoverlay_debug.log');
+
                                 echo '<div style="font-family: monospace; font-size: 11px; background: #fff; padding: 10px; border: 1px solid #ccc; max-height: 300px; overflow-y: auto;">';
                                 
                                 if (isset($this->dynamic_content_manager)) {
@@ -651,6 +666,14 @@ class SiteOverlay_Pro {
                                     echo "Dynamic Content Manager not available<br>";
                                 }
                                 
+                                // SHOW ANY ERRORS THAT OCCURRED
+                                $errors = ob_get_contents();
+                                if (!empty($errors)) {
+                                    echo "<br><strong>PHP Errors/Warnings:</strong><br>";
+                                    echo nl2br(esc_html($errors));
+                                }
+                                ob_end_clean();
+
                                 echo '</div>';
                                 
                                 // ERROR LOG CAPTURE
