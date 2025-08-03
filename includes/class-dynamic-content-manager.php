@@ -118,6 +118,7 @@ class SiteOverlay_Dynamic_Content_Manager {
             if ($result) {
                 $stored_chunks++;
             } else {
+                error_log('STORAGE FAILED AT: update_option failed for chunk ' . $i);
                 error_log("CHUNK {$i} STORAGE FAILED - ABORTING");
                 $this->clear_all_chunks();
                 error_log('=== STORE_CONTENT_CHUNKS END (FAILED) ===');

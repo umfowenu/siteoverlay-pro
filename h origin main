@@ -1,0 +1,3 @@
+[33m6a75bd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m 🔍 CHUNK SIZE FIX: Debug and fix find_optimal_chunk_size for flat array format
+[33m4cad63b[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 🔧 CRITICAL FIX: Correct chunk processing for flat associative array format
+[33m61a03d6[m AUTO DEBUG: Add direct storage test that runs on page load + error log capture
