@@ -613,7 +613,7 @@ class SiteOverlay_Pro {
                                             $result3 = $store_method->invoke($this->dynamic_content_manager, $five_items);
                                             echo ($result3 ? 'TRUE' : 'FALSE') . "<br>";
                                             
-                                            // Test 4: Structure test with simple keys
+                                            // Test 4: Structure test with simple keys - TESTING ONLY, DON'T CACHE
                                             $simple_structure = array();
                                             $count = 0;
                                             foreach ($real_content as $key => $value) {
@@ -621,9 +621,27 @@ class SiteOverlay_Pro {
                                                 $count++;
                                                 if ($count >= 14) break;
                                             }
-                                            echo "Test 4 - 14 items, simple structure: ";
-                                            $result4 = $store_method->invoke($this->dynamic_content_manager, $simple_structure);
-                                            echo ($result4 ? 'TRUE' : 'FALSE') . "<br>";
+                                            echo "Test 4 - 14 items, simple structure (TESTING ONLY - NO CACHE): ";
+                                            // DON'T CACHE DUMMY DATA! Just test if it would work
+                                            echo "SKIPPED (would overwrite real data)<br>";
+                                            
+                                            // Test 5: Try caching the REAL content with all items  
+                                            echo "Test 5 - ALL REAL CONTENT (" . count($real_content) . " items): ";
+                                            
+                                            // Clear any existing dummy data first
+                                            $clear_method = $reflection->getMethod('clear_all_chunks');
+                                            $clear_method->setAccessible(true);
+                                            $clear_method->invoke($this->dynamic_content_manager);
+                                            echo "[Cache cleared] ";
+                                            
+                                            $result5 = $store_method->invoke($this->dynamic_content_manager, $real_content);
+                                            echo ($result5 ? 'TRUE' : 'FALSE') . "<br>";
+                                            
+                                            if ($result5) {
+                                                echo "<strong style='color: green;'>✅ SUCCESS: Real API content cached successfully!</strong><br>";
+                                            } else {
+                                                echo "<strong style='color: red;'>❌ FAILED: Real API content could not be cached!</strong><br>";
+                                            }
                                             
                                         } else {
                                             echo "No real content available<br>";
