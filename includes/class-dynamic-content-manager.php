@@ -35,113 +35,198 @@ class SiteOverlay_Dynamic_Content_Manager {
      * Get dynamic content with DEEP DEBUGGING
      */
     public function get_dynamic_content() {
-        $cache_key = 'so_cache';
-        $cache_expiry_key = 'so_cache_expiry';
-        
         error_log('=== SITEOVERLAY DEBUG START ===');
         
-        // Use options table directly (READ FROM CHUNKS)
-        $cache_count = get_option('so_cache_count', 0);
-        $cache_expiry = get_option('so_cache_expiry', 0);
+        // Try to retrieve from chunks
+        $cached_content = $this->retrieve_content_chunks();
         
-        error_log('STEP 1 - Cache check: Found ' . $cache_count . ' chunks');
-        error_log('STEP 1 - Expiry: ' . $cache_expiry . ' (current time: ' . time() . ')');
-        
-        if ($cache_count > 0) {
-            // Reconstruct content from chunks
-            $cached_content = array();
-            for ($i = 0; $i < $cache_count; $i++) {
-                $chunk = get_option('so_cache_' . $i, false);
-                if ($chunk && is_array($chunk)) {
-                    $cached_content = array_merge($cached_content, $chunk);
-                } else {
-                    // If any chunk is missing, invalidate entire cache
-                    error_log('STEP 2 - Chunk ' . $i . ' missing, invalidating cache');
-                    $cached_content = false;
-                    break;
-                }
-            }
-        } else {
-            $cached_content = false;
-        }
-        
-        // Check if cache is expired
-        if ($cached_content && time() > $cache_expiry) {
-            error_log('STEP 2 - Cache EXPIRED, clearing chunks');
-            $cached_content = false;
-            // Clear all chunks
-            for ($i = 0; $i < $cache_count; $i++) {
-                delete_option('so_cache_' . $i);
-            }
-            delete_option('so_cache_count');
-            delete_option('so_cache_expiry');
-        }
-        
-        // Return cached content if available
-        if ($cached_content !== false && is_array($cached_content) && count($cached_content) > 0) {
-            error_log('STEP 3 - Returning cached content (' . count($cached_content) . ' items)');
+        if ($cached_content && is_array($cached_content) && count($cached_content) > 0) {
+            error_log('SiteOverlay: Returning chunked cache (' . count($cached_content) . ' items)');
             error_log('=== SITEOVERLAY DEBUG END (CACHED) ===');
             return $cached_content;
         }
         
         // Fetch fresh content from API
-        error_log('STEP 4 - No valid cache, fetching from API');
+        error_log('SiteOverlay: No cache, fetching fresh from API');
         $fresh_content = $this->fetch_content_from_api();
         
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
-            error_log('STEP 5 - API SUCCESS: Got ' . count($fresh_content) . ' items');
+            error_log('SiteOverlay: API returned ' . count($fresh_content) . ' items');
             
-            // Cache using options table (SPLIT INTO CHUNKS)
-            $expiry_time = time() + $this->cache_duration;
-            
-            // Split content into chunks of 5 items each
-            $chunks = array_chunk($fresh_content, 5, true);
-            $chunk_count = count($chunks);
-            
-            error_log('STEP 6 - Splitting ' . count($fresh_content) . ' items into ' . $chunk_count . ' chunks');
-            
-            // Store each chunk separately
-            $all_chunks_stored = true;
-            for ($i = 0; $i < $chunk_count; $i++) {
-                $chunk_key = 'so_cache_' . $i;
-                $chunk_result = update_option($chunk_key, $chunks[$i]);
-                error_log('STEP 7.' . $i . ' - Chunk ' . $i . ' storage: ' . ($chunk_result ? 'SUCCESS' : 'FAILED'));
-                if (!$chunk_result) {
-                    $all_chunks_stored = false;
-                }
-            }
-            
-            // Store metadata
-            $count_result = update_option('so_cache_count', $chunk_count);
-            $expiry_result = update_option('so_cache_expiry', $expiry_time);
-            
-            error_log('STEP 8 - Metadata storage - Count: ' . ($count_result ? 'SUCCESS' : 'FAILED') . ', Expiry: ' . ($expiry_result ? 'SUCCESS' : 'FAILED'));
-            
-            // Verify chunk storage
-            if ($all_chunks_stored) {
-                error_log('STEP 9 - All chunks stored successfully');
-                
-                // Verify by reconstructing
-                $verify_content = array();
-                for ($i = 0; $i < $chunk_count; $i++) {
-                    $verify_chunk = get_option('so_cache_' . $i, false);
-                    if ($verify_chunk && is_array($verify_chunk)) {
-                        $verify_content = array_merge($verify_content, $verify_chunk);
-                    }
-                }
-                error_log('STEP 10 - Verification: Reconstructed ' . count($verify_content) . ' items from chunks');
-            } else {
-                error_log('STEP 9 - Some chunks failed to store');
-            }
+            // Store using dynamic chunking
+            $storage_success = $this->store_content_chunks($fresh_content);
+            error_log('SiteOverlay: Dynamic chunking result: ' . ($storage_success ? 'SUCCESS' : 'FAILED'));
             
             error_log('=== SITEOVERLAY DEBUG END (FRESH) ===');
             return $fresh_content;
         }
         
-        // Fallback to default content if API fails
-        error_log('STEP 12 - API FAILED, using default content');
+        error_log('SiteOverlay: API failed, using default content');
         error_log('=== SITEOVERLAY DEBUG END (DEFAULT) ===');
         return $this->default_content;
+    }
+    
+    /**
+     * Store content using dynamic chunking based on WordPress limits
+     */
+    private function store_content_chunks($content) {
+        $expiry_time = time() + $this->cache_duration;
+        
+        // Test to find optimal chunk size for this hosting environment
+        $optimal_chunk_size = $this->find_optimal_chunk_size($content);
+        error_log("SiteOverlay: Using chunk size of {$optimal_chunk_size} items");
+        
+        // Split content into optimal chunks
+        $content_array = array_values($content); // Ensure numeric keys
+        $chunks = array_chunk($content_array, $optimal_chunk_size, false);
+        $chunk_count = count($chunks);
+        
+        // Clear any existing chunks first
+        $this->clear_all_chunks();
+        
+        // Store each chunk
+        $stored_chunks = 0;
+        for ($i = 0; $i < $chunk_count; $i++) {
+            $chunk_key = "so_cache_{$i}";
+            
+            // Rebuild associative array for this chunk
+            $chunk_data = array();
+            foreach ($chunks[$i] as $item) {
+                if (is_array($item) && count($item) == 1) {
+                    $key = array_keys($item)[0];
+                    $value = array_values($item)[0];
+                    $chunk_data[$key] = $value;
+                }
+            }
+            
+            $result = update_option($chunk_key, $chunk_data);
+            if ($result) {
+                $stored_chunks++;
+                error_log("SiteOverlay: Chunk {$i} stored successfully (" . count($chunk_data) . " items)");
+            } else {
+                error_log("SiteOverlay: Chunk {$i} storage FAILED");
+                // If any chunk fails, clean up and return false
+                $this->clear_all_chunks();
+                return false;
+            }
+        }
+        
+        // Store metadata
+        update_option('so_cache_count', $chunk_count);
+        update_option('so_cache_total_items', count($content));
+        update_option('so_cache_expiry', $expiry_time);
+        
+        error_log("SiteOverlay: Successfully stored {$stored_chunks}/{$chunk_count} chunks with " . count($content) . " total items");
+        return true;
+    }
+    
+    /**
+     * Find optimal chunk size by testing progressively smaller chunks
+     */
+    private function find_optimal_chunk_size($content) {
+        if (empty($content)) return 1;
+        
+        $content_array = array_values($content);
+        $total_items = count($content_array);
+        
+        // Test chunk sizes from largest to smallest
+        $test_sizes = array(
+            min($total_items, 10),
+            min($total_items, 7),
+            min($total_items, 5),
+            min($total_items, 3),
+            1
+        );
+        
+        foreach ($test_sizes as $size) {
+            $test_chunk = array_slice($content_array, 0, $size);
+            
+            // Convert to associative array for testing
+            $test_data = array();
+            foreach ($test_chunk as $item) {
+                if (is_array($item) && count($item) == 1) {
+                    $key = array_keys($item)[0];
+                    $value = array_values($item)[0];
+                    $test_data[$key] = $value;
+                }
+            }
+            
+            // Test if this size works
+            $test_key = 'so_cache_size_test';
+            $result = update_option($test_key, $test_data);
+            delete_option($test_key);
+            
+            if ($result) {
+                error_log("SiteOverlay: Optimal chunk size found: {$size} items");
+                return $size;
+            }
+        }
+        
+        // Fallback to single items
+        error_log("SiteOverlay: Using fallback chunk size: 1 item");
+        return 1;
+    }
+    
+    /**
+     * Retrieve content from chunks
+     */
+    private function retrieve_content_chunks() {
+        $cache_count = get_option('so_cache_count', 0);
+        $total_items = get_option('so_cache_total_items', 0);
+        $cache_expiry = get_option('so_cache_expiry', 0);
+        
+        // Check expiry
+        if ($cache_expiry > 0 && time() > $cache_expiry) {
+            error_log('SiteOverlay: Chunked cache expired');
+            $this->clear_all_chunks();
+            return false;
+        }
+        
+        if ($cache_count == 0) {
+            return false;
+        }
+        
+        // Reconstruct content from chunks
+        $content = array();
+        for ($i = 0; $i < $cache_count; $i++) {
+            $chunk = get_option("so_cache_{$i}", false);
+            if ($chunk && is_array($chunk)) {
+                $content = array_merge($content, $chunk);
+            } else {
+                error_log("SiteOverlay: Chunk {$i} missing, invalidating cache");
+                $this->clear_all_chunks();
+                return false;
+            }
+        }
+        
+        if (count($content) === $total_items) {
+            error_log("SiteOverlay: Successfully retrieved {$total_items} items from {$cache_count} chunks");
+            return $content;
+        } else {
+            error_log("SiteOverlay: Item count mismatch, invalidating cache");
+            $this->clear_all_chunks();
+            return false;
+        }
+    }
+    
+    /**
+     * Clear all cache chunks
+     */
+    private function clear_all_chunks() {
+        $cache_count = get_option('so_cache_count', 0);
+        
+        // Clear chunk data
+        for ($i = 0; $i < max($cache_count, 20); $i++) { // Clear up to 20 chunks to be safe
+            delete_option("so_cache_{$i}");
+        }
+        
+        // Clear metadata
+        delete_option('so_cache_count');
+        delete_option('so_cache_total_items');
+        delete_option('so_cache_expiry');
+        delete_transient('so_cache'); // Clear old transient too
+        
+        error_log('SiteOverlay: All cache chunks cleared');
     }
     
     /**
@@ -301,23 +386,8 @@ class SiteOverlay_Dynamic_Content_Manager {
      * Clear content cache (options table version)
      */
     public function clear_cache() {
-        // Clear chunk-based cache
-        $cache_count = get_option('so_cache_count', 0);
-        
-        // Clear all chunks
-        for ($i = 0; $i < $cache_count; $i++) {
-            delete_option('so_cache_' . $i);
-        }
-        
-        // Clear metadata
-        delete_option('so_cache_count');
-        delete_option('so_cache_expiry');
-        
-        // Clear legacy cache (if any)
-        delete_transient('so_cache');
-        delete_option('so_cache');
-        
-        error_log('SiteOverlay: Cache cleared (' . $cache_count . ' chunks cleared)');
+        // Use the centralized clear method
+        $this->clear_all_chunks();
     }
     
     /**
@@ -325,22 +395,8 @@ class SiteOverlay_Dynamic_Content_Manager {
      */
     public function debug_api_connection() {
         $fresh_content = $this->fetch_content_from_api();
-        // Check for chunk-based cache
-        $cache_count = get_option('so_cache_count', 0);
-        if ($cache_count > 0) {
-            $cached_content = array();
-            for ($i = 0; $i < $cache_count; $i++) {
-                $chunk = get_option('so_cache_' . $i, false);
-                if ($chunk && is_array($chunk)) {
-                    $cached_content = array_merge($cached_content, $chunk);
-                } else {
-                    $cached_content = false;
-                    break;
-                }
-            }
-        } else {
-            $cached_content = false;
-        }
+        // Check for chunk-based cache using the centralized method
+        $cached_content = $this->retrieve_content_chunks();
         
         // Test cache setting
         $cache_test_result = 'SKIPPED';
