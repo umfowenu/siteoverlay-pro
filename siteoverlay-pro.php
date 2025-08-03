@@ -507,46 +507,38 @@ class SiteOverlay_Pro {
                                 }
                                 echo '<br>';
                                 
-                                // Test cache storage
-                                $cache_key = 'so_cache';
-                                $expiry_time = time() + 3600;
-                                
-                                echo '✓ STEP 3: Attempting to store in options table...<br>';
-                                $option_set = update_option($cache_key, $fresh_content);
-                                echo '✓ STEP 4: update_option() returned: ' . ($option_set ? 'TRUE' : 'FALSE') . '<br>';
-                                
-                                $expiry_set = update_option($cache_key . '_expiry', $expiry_time);
-                                echo '✓ STEP 5: update_option() expiry returned: ' . ($expiry_set ? 'TRUE' : 'FALSE') . '<br>';
-                                
-                                // Immediate verification
-                                $verify_content = get_option($cache_key, false);
-                                echo '✓ STEP 6: Immediate get_option() check: ' . ($verify_content ? count($verify_content) . ' items found' : 'NOT FOUND') . '<br>';
-                                
-                                // Database direct check
-                                global $wpdb;
-                                $db_check = $wpdb->get_var($wpdb->prepare(
-                                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 
-                                    $cache_key
-                                ));
-                                echo '✓ STEP 7: Direct database check: ' . ($db_check ? 'FOUND in database' : 'NOT FOUND in database') . '<br>';
-                                
-                                // Try to unserialize the data
-                                if ($db_check) {
-                                    $unserialized = maybe_unserialize($db_check);
-                                    echo '✓ STEP 8: Database data type: ' . gettype($unserialized) . '<br>';
-                                    if (is_array($unserialized)) {
-                                        echo '✓ STEP 9: Database contains ' . count($unserialized) . ' items<br>';
-                                        echo '✓ STEP 10: Sample data: ' . substr(print_r(array_slice($unserialized, 0, 2, true), true), 0, 200) . '...<br>';
-                                    } else {
-                                        echo '❌ STEP 9: Database data is not an array!<br>';
+                                echo '✓ STEP 3: Testing dynamic chunking storage...<br>';
+
+                                // Use the dynamic chunking system
+                                if (isset($this->dynamic_content_manager)) {
+                                    // Access the private method using reflection
+                                    $reflection = new ReflectionClass($this->dynamic_content_manager);
+                                    $store_method = $reflection->getMethod('store_content_chunks');
+                                    $store_method->setAccessible(true);
+                                    $retrieve_method = $reflection->getMethod('retrieve_content_chunks');
+                                    $retrieve_method->setAccessible(true);
+                                    
+                                    $storage_result = $store_method->invoke($this->dynamic_content_manager, $fresh_content);
+                                    echo '✓ STEP 4: Dynamic chunking result: ' . ($storage_result ? 'SUCCESS' : 'FAILED') . '<br>';
+                                    
+                                    // Verify chunk retrieval
+                                    $retrieved_content = $retrieve_method->invoke($this->dynamic_content_manager);
+                                    echo '✓ STEP 5: Retrieved from chunks: ' . ($retrieved_content ? count($retrieved_content) . ' items' : 'NONE') . '<br>';
+                                    
+                                    // Show chunk details
+                                    $chunk_count = get_option('so_cache_count', 0);
+                                    $total_items = get_option('so_cache_total_items', 0);
+                                    echo '✓ STEP 6: Chunk details: ' . $chunk_count . ' chunks containing ' . $total_items . ' total items<br>';
+                                    
+                                    // Test individual chunk storage
+                                    echo '✓ STEP 7: Individual chunk verification:<br>';
+                                    for ($i = 0; $i < $chunk_count; $i++) {
+                                        $chunk_data = get_option("so_cache_{$i}", false);
+                                        echo '&nbsp;&nbsp;• Chunk ' . $i . ': ' . ($chunk_data ? count($chunk_data) . ' items' : 'NOT FOUND') . '<br>';
                                     }
+                                } else {
+                                    echo '❌ STEP 4: Dynamic Content Manager not available<br>';
                                 }
-                                
-                                // Test if WordPress is blocking the option name
-                                $test_option = update_option('test_siteoverlay_cache', array('test' => 'data'));
-                                $test_verify = get_option('test_siteoverlay_cache', false);
-                                delete_option('test_siteoverlay_cache');
-                                echo '✓ STEP 11: Test option storage: ' . ($test_verify ? 'WORKING' : 'BLOCKED') . '<br>';
                                 
                             } else {
                                 echo '❌ API fetch failed, cannot test cache storage<br>';
