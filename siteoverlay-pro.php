@@ -536,6 +536,42 @@ class SiteOverlay_Pro {
                                         $chunk_data = get_option("so_cache_{$i}", false);
                                         echo '&nbsp;&nbsp;• Chunk ' . $i . ': ' . ($chunk_data ? count($chunk_data) . ' items' : 'NOT FOUND') . '<br>';
                                     }
+                                    
+                                    // DETAILED CHUNK INSPECTION
+                                    echo '<br><strong>Detailed chunk inspection:</strong><br>';
+
+                                    // Check what actually got stored
+                                    $actual_chunk_count = get_option('so_cache_count', 0);
+                                    $actual_total = get_option('so_cache_total_items', 0);
+                                    $actual_expiry = get_option('so_cache_expiry', 0);
+
+                                    echo '• so_cache_count: ' . $actual_chunk_count . '<br>';
+                                    echo '• so_cache_total_items: ' . $actual_total . '<br>';
+                                    echo '• so_cache_expiry: ' . $actual_expiry . ' (current: ' . time() . ')<br>';
+
+                                    // Check individual chunks
+                                    for ($i = 0; $i < 5; $i++) {
+                                        $chunk_data = get_option("so_cache_{$i}", 'NOT_FOUND');
+                                        if ($chunk_data !== 'NOT_FOUND') {
+                                            echo '• so_cache_' . $i . ': ' . (is_array($chunk_data) ? count($chunk_data) . ' items' : 'INVALID') . '<br>';
+                                        } else {
+                                            echo '• so_cache_' . $i . ': NOT FOUND<br>';
+                                        }
+                                    }
+
+                                    // Test if the storage method is being called at all
+                                    echo '<br><strong>Method call test:</strong><br>';
+                                    try {
+                                        $reflection = new ReflectionClass($this->dynamic_content_manager);
+                                        $method = $reflection->getMethod('store_content_chunks');
+                                        echo '• store_content_chunks method: EXISTS<br>';
+                                        
+                                        $method2 = $reflection->getMethod('retrieve_content_chunks');
+                                        echo '• retrieve_content_chunks method: EXISTS<br>';
+                                    } catch (Exception $e) {
+                                        echo '• Method access error: ' . $e->getMessage() . '<br>';
+                                    }
+                                    
                                 } else {
                                     echo '❌ STEP 4: Dynamic Content Manager not available<br>';
                                 }
@@ -1741,74 +1777,62 @@ class SiteOverlay_Pro {
         if (isset($this->dynamic_content_manager)) {
             $debug_steps = array();
             
-            // Clear existing chunk-based cache
-            $cache_count = get_option('so_cache_count', 0);
-            for ($i = 0; $i < $cache_count; $i++) {
-                delete_option('so_cache_' . $i);
-            }
-            delete_option('so_cache_count');
-            delete_option('so_cache_expiry');
-            $debug_steps[] = '✓ STEP 1: Cleared existing cache (' . $cache_count . ' chunks)';
+            // Clear existing chunk-based cache using the proper method
+            $this->dynamic_content_manager->clear_cache();
+            $debug_steps[] = '✓ STEP 1: Cleared existing cache using clear_cache() method';
             
-            // Force fresh fetch
-            $content = $this->dynamic_content_manager->get_dynamic_content();
+            // Force fresh API fetch
+            $fresh_content = $this->dynamic_content_manager->fetch_content_from_api();
             
-            // Test direct storage (bypass the get_dynamic_content method)
-            if (is_array($content) && count($content) > 0) {
-                $debug_steps[] = '✓ STEP 2: API returned: ' . count($content) . ' items';
+            if (is_array($fresh_content) && count($fresh_content) > 0) {
+                $debug_steps[] = '✓ STEP 2: API fetch successful: ' . count($fresh_content) . ' items';
                 
-                // Test direct option storage
-                $cache_key = 'so_cache'; // Use shorter name
-                $option_result = update_option($cache_key, $content);
-                $debug_steps[] = '✓ STEP 3: Direct update_option() result: ' . ($option_result ? 'TRUE' : 'FALSE');
-                
-                // Immediate verification
-                $verify_immediate = get_option($cache_key, false);
-                $debug_steps[] = '✓ STEP 4: Immediate get_option() result: ' . ($verify_immediate ? count($verify_immediate) . ' items' : 'NOT FOUND');
-                
-                // Database direct check
-                global $wpdb;
-                $db_check = $wpdb->get_var($wpdb->prepare(
-                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 
-                    $cache_key
-                ));
-                $debug_steps[] = '✓ STEP 5: Database direct check: ' . ($db_check ? 'FOUND' : 'NOT FOUND');
-                
-            } else {
-                $debug_steps[] = '❌ STEP 2: API failed or returned invalid data';
-            }
-            
-            // Final cache verification using chunk-based method
-            $final_cache_count = get_option('so_cache_count', 0);
-            if ($final_cache_count > 0) {
-                $cached_verify = array();
-                for ($i = 0; $i < $final_cache_count; $i++) {
-                    $chunk = get_option('so_cache_' . $i, false);
-                    if ($chunk && is_array($chunk)) {
-                        $cached_verify = array_merge($cached_verify, $chunk);
-                    } else {
-                        $cached_verify = false;
-                        break;
+                // Use the chunking system to store content
+                try {
+                    $reflection = new ReflectionClass($this->dynamic_content_manager);
+                    $store_method = $reflection->getMethod('store_content_chunks');
+                    $store_method->setAccessible(true);
+                    $retrieve_method = $reflection->getMethod('retrieve_content_chunks');
+                    $retrieve_method->setAccessible(true);
+                    
+                    $storage_result = $store_method->invoke($this->dynamic_content_manager, $fresh_content);
+                    $debug_steps[] = '✓ STEP 3: Dynamic chunking storage: ' . ($storage_result ? 'SUCCESS' : 'FAILED');
+                    
+                    // Verify chunk storage
+                    $retrieved_content = $retrieve_method->invoke($this->dynamic_content_manager);
+                    $debug_steps[] = '✓ STEP 4: Retrieved from chunks: ' . ($retrieved_content ? count($retrieved_content) . ' items' : 'NONE');
+                    
+                    // Show chunk details
+                    $chunk_count = get_option('so_cache_count', 0);
+                    $total_items = get_option('so_cache_total_items', 0);
+                    $debug_steps[] = '✓ STEP 5: Chunk metadata: ' . $chunk_count . ' chunks, ' . $total_items . ' total items';
+                    
+                    // Verify individual chunks
+                    $chunk_details = array();
+                    for ($i = 0; $i < $chunk_count; $i++) {
+                        $chunk_data = get_option("so_cache_{$i}", false);
+                        $chunk_details[] = 'Chunk ' . $i . ': ' . ($chunk_data ? count($chunk_data) . ' items' : 'NOT FOUND');
                     }
+                    $debug_steps[] = '✓ STEP 6: Chunk verification: ' . implode(', ', $chunk_details);
+                    
+                } catch (Exception $e) {
+                    $debug_steps[] = '❌ STEP 3: Chunking method error: ' . $e->getMessage();
+                    $storage_result = false;
+                    $retrieved_content = false;
                 }
+                
             } else {
-                $cached_verify = false;
+                $debug_steps[] = '❌ STEP 2: API fetch failed or returned no data';
+                $storage_result = false;
+                $retrieved_content = false;
             }
-            $debug_steps[] = '✓ STEP 6: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items stored in ' . $final_cache_count . ' chunks' : 'STORAGE FAILED');
-            
-            // Test if option name is blocked
-            $test_key = 'test_siteoverlay_cache_' . time();
-            $test_option = update_option($test_key, array('test' => 'data'));
-            $test_verify = get_option($test_key, false);
-            $debug_steps[] = '✓ STEP 7: Option storage test: ' . ($test_verify ? 'WORKING' : 'BLOCKED');
-            delete_option($test_key);
             
             $debug_output = implode('<br>', $debug_steps);
             
-            if ($cached_verify && count($cached_verify) > 0) {
-                wp_send_json_success('✅ CACHE SUCCESS! ' . count($cached_verify) . ' items cached.<br><br><strong>Debug Steps:</strong><br>' . $debug_output);
+            if ($retrieved_content && count($retrieved_content) > 0) {
+                wp_send_json_success('🎉 CHUNKING SUCCESS! ' . count($retrieved_content) . ' items cached using smart auto-chunking.<br><br><strong>Debug Steps:</strong><br>' . $debug_output);
             } else {
-                wp_send_json_error('❌ CACHE FAILED!<br><br><strong>Debug Steps:</strong><br>' . $debug_output . '<br><br><strong>Content received:</strong> ' . (is_array($content) ? count($content) : 'none') . ' items');
+                wp_send_json_error('❌ CHUNKING FAILED!<br><br><strong>Debug Steps:</strong><br>' . $debug_output . '<br><br><strong>Fresh content received:</strong> ' . (is_array($fresh_content) ? count($fresh_content) : 'none') . ' items');
             }
         } else {
             wp_send_json_error('Dynamic Content Manager not available');
