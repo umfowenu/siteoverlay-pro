@@ -70,53 +70,78 @@ class SiteOverlay_Dynamic_Content_Manager {
      * Store content using dynamic chunking based on WordPress limits
      */
     private function store_content_chunks($content) {
+        error_log('=== STORE_CONTENT_CHUNKS START ===');
+        error_log('Content input: ' . (is_array($content) ? count($content) . ' items' : 'NOT ARRAY'));
+        
         $expiry_time = time() + $this->cache_duration;
         
         // Test to find optimal chunk size for this hosting environment
         $optimal_chunk_size = $this->find_optimal_chunk_size($content);
-        error_log("SiteOverlay: Using chunk size of {$optimal_chunk_size} items");
+        error_log("Using chunk size of {$optimal_chunk_size} items");
         
         // Split content into optimal chunks
         $content_array = array_values($content); // Ensure numeric keys
+        error_log('Content array created: ' . count($content_array) . ' items');
+        
         $chunks = array_chunk($content_array, $optimal_chunk_size, false);
         $chunk_count = count($chunks);
+        error_log("Split into {$chunk_count} chunks");
         
         // Clear any existing chunks first
         $this->clear_all_chunks();
+        error_log('Cleared existing chunks');
         
         // Store each chunk
         $stored_chunks = 0;
         for ($i = 0; $i < $chunk_count; $i++) {
             $chunk_key = "so_cache_{$i}";
             
+            error_log("Processing chunk {$i} with " . count($chunks[$i]) . " raw items");
+            
             // Rebuild associative array for this chunk
             $chunk_data = array();
             foreach ($chunks[$i] as $item) {
+                error_log("Processing item: " . print_r($item, true));
                 if (is_array($item) && count($item) == 1) {
                     $key = array_keys($item)[0];
                     $value = array_values($item)[0];
                     $chunk_data[$key] = $value;
+                    error_log("Added to chunk: {$key} = {$value}");
+                } else {
+                    error_log("SKIPPED ITEM - wrong format: " . print_r($item, true));
                 }
             }
             
+            error_log("Chunk {$i} final data: " . count($chunk_data) . " items - " . print_r($chunk_data, true));
+            
             $result = update_option($chunk_key, $chunk_data);
+            error_log("update_option({$chunk_key}) returned: " . ($result ? 'TRUE' : 'FALSE'));
+            
+            // Immediate verification
+            $verify = get_option($chunk_key, 'NOT_FOUND');
+            error_log("Immediate get_option({$chunk_key}): " . ($verify !== 'NOT_FOUND' ? 'FOUND' : 'NOT_FOUND'));
+            
             if ($result) {
                 $stored_chunks++;
-                error_log("SiteOverlay: Chunk {$i} stored successfully (" . count($chunk_data) . " items)");
             } else {
-                error_log("SiteOverlay: Chunk {$i} storage FAILED");
-                // If any chunk fails, clean up and return false
+                error_log("CHUNK {$i} STORAGE FAILED - ABORTING");
                 $this->clear_all_chunks();
+                error_log('=== STORE_CONTENT_CHUNKS END (FAILED) ===');
                 return false;
             }
         }
         
         // Store metadata
-        update_option('so_cache_count', $chunk_count);
-        update_option('so_cache_total_items', count($content));
-        update_option('so_cache_expiry', $expiry_time);
+        $count_result = update_option('so_cache_count', $chunk_count);
+        $total_result = update_option('so_cache_total_items', count($content));
+        $expiry_result = update_option('so_cache_expiry', $expiry_time);
         
-        error_log("SiteOverlay: Successfully stored {$stored_chunks}/{$chunk_count} chunks with " . count($content) . " total items");
+        error_log("Metadata storage - count: " . ($count_result ? 'SUCCESS' : 'FAILED') . 
+                  ", total: " . ($total_result ? 'SUCCESS' : 'FAILED') . 
+                  ", expiry: " . ($expiry_result ? 'SUCCESS' : 'FAILED'));
+        
+        error_log("Successfully stored {$stored_chunks}/{$chunk_count} chunks with " . count($content) . " total items");
+        error_log('=== STORE_CONTENT_CHUNKS END (SUCCESS) ===');
         return true;
     }
     
