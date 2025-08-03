@@ -79,13 +79,10 @@ class SiteOverlay_Dynamic_Content_Manager {
         $optimal_chunk_size = $this->find_optimal_chunk_size($content);
         error_log("Using chunk size of {$optimal_chunk_size} items");
         
-        // Split content into optimal chunks
-        $content_array = array_values($content); // Ensure numeric keys
-        error_log('Content array created: ' . count($content_array) . ' items');
-        
-        $chunks = array_chunk($content_array, $optimal_chunk_size, false);
-        $chunk_count = count($chunks);
-        error_log("Split into {$chunk_count} chunks");
+        // Calculate chunking for flat associative array
+        $total_items = count($content);
+        $chunk_count = ceil($total_items / $optimal_chunk_size);
+        error_log("Split into {$chunk_count} chunks from {$total_items} total items");
         
         // Clear any existing chunks first
         $this->clear_all_chunks();
@@ -93,26 +90,23 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         // Store each chunk
         $stored_chunks = 0;
+        $content_keys = array_keys($content);
+        
         for ($i = 0; $i < $chunk_count; $i++) {
             $chunk_key = "so_cache_{$i}";
             
-            error_log("Processing chunk {$i} with " . count($chunks[$i]) . " raw items");
+            // Get the keys for this chunk
+            $chunk_keys = array_slice($content_keys, $i * $optimal_chunk_size, $optimal_chunk_size);
+            error_log("Processing chunk {$i} with " . count($chunk_keys) . " items: " . implode(', ', $chunk_keys));
             
-            // Rebuild associative array for this chunk
+            // Build chunk data from original content
             $chunk_data = array();
-            foreach ($chunks[$i] as $item) {
-                error_log("Processing item: " . print_r($item, true));
-                if (is_array($item) && count($item) == 1) {
-                    $key = array_keys($item)[0];
-                    $value = array_values($item)[0];
-                    $chunk_data[$key] = $value;
-                    error_log("Added to chunk: {$key} = {$value}");
-                } else {
-                    error_log("SKIPPED ITEM - wrong format: " . print_r($item, true));
-                }
+            foreach ($chunk_keys as $key) {
+                $chunk_data[$key] = $content[$key];
+                error_log("Added to chunk: {$key} = " . substr($content[$key], 0, 50) . "...");
             }
             
-            error_log("Chunk {$i} final data: " . count($chunk_data) . " items - " . print_r($chunk_data, true));
+            error_log("Chunk {$i} final data: " . count($chunk_data) . " items - " . print_r(array_keys($chunk_data), true));
             
             $result = update_option($chunk_key, $chunk_data);
             error_log("update_option({$chunk_key}) returned: " . ($result ? 'TRUE' : 'FALSE'));
