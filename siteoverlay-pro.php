@@ -194,7 +194,7 @@ class SiteOverlay_Pro {
                     <?php if (isset($this->dynamic_content_manager)): ?>
                         <?php 
                                         // Check cache status using options table instead of transients
-                $cached_content = get_option('siteoverlay_cache', false);
+                $cached_content = get_option('so_cache', false);
                         $content_count = $cached_content ? count($cached_content) : 0;
                         
                         // Add debug information
@@ -224,7 +224,7 @@ class SiteOverlay_Pro {
             <?php
             // Force initial content load and cache if not already cached
             if (isset($this->dynamic_content_manager)) {
-                $cached_check = get_option('siteoverlay_cache', false);
+                $cached_check = get_option('so_cache', false);
                 if (!$cached_check) {
                     // Force load content to establish cache
                     $initial_content = $this->dynamic_content_manager->get_dynamic_content();
@@ -241,7 +241,7 @@ class SiteOverlay_Pro {
                     <?php
                     // Test API connection live
                     $debug_info = $this->dynamic_content_manager->debug_api_connection();
-                    $cached_content = get_option('siteoverlay_cache', false);
+                    $cached_content = get_option('so_cache', false);
                     ?>
                     
                     <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">
@@ -389,7 +389,7 @@ class SiteOverlay_Pro {
                         echo '• Total Options: ' . $options_count . '<br>';
                         
                         // Check for our specific option
-                        $our_option = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'siteoverlay_cache'));
+                        $our_option = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'so_cache'));
                         echo '• Our Cache in DB: ' . ($our_option ? '✅ FOUND' : '❌ NOT FOUND') . '</p>';
                         ?>
                     </div>
@@ -404,8 +404,8 @@ class SiteOverlay_Pro {
                             echo '<strong>Testing cache storage step-by-step:</strong><br><br>';
                             
                             // Clear cache first
-                            delete_option('siteoverlay_cache');
-                            delete_option('siteoverlay_cache_expiry');
+                            delete_option('so_cache');
+                            delete_option('so_cache_expiry');
                             echo '✓ STEP 1: Cleared existing cache<br>';
                             
                             // Test API fetch (use the private method via reflection for testing)
@@ -417,8 +417,26 @@ class SiteOverlay_Pro {
                             echo '✓ STEP 2: API fetch - ' . (is_array($fresh_content) ? count($fresh_content) . ' items received' : 'FAILED') . '<br>';
                             
                             if (is_array($fresh_content) && count($fresh_content) > 0) {
+                                // Test different option name patterns
+                                $test_names = array(
+                                    'so_cache' => array('test' => 'data'),
+                                    'overlay_cache' => array('test' => 'data'),
+                                    'dynamic_cache' => array('test' => 'data'),
+                                    'plugin_cache' => array('test' => 'data'),
+                                    'wp_cache_data' => array('test' => 'data')
+                                );
+
+                                echo '<strong>Testing different option names:</strong><br>';
+                                foreach ($test_names as $name => $data) {
+                                    $set_result = update_option($name, $data);
+                                    $get_result = get_option($name, false);
+                                    delete_option($name);
+                                    echo '• ' . $name . ': ' . ($set_result && $get_result ? 'WORKS' : 'BLOCKED') . '<br>';
+                                }
+                                echo '<br>';
+                                
                                 // Test cache storage
-                                $cache_key = 'siteoverlay_cache';
+                                $cache_key = 'so_cache';
                                 $expiry_time = time() + 3600;
                                 
                                 echo '✓ STEP 3: Attempting to store in options table...<br>';
@@ -1660,8 +1678,8 @@ class SiteOverlay_Pro {
             $debug_steps = array();
             
             // Clear existing cache
-            delete_option('siteoverlay_cache');
-            delete_option('siteoverlay_cache_expiry');
+            delete_option('so_cache');
+            delete_option('so_cache_expiry');
             $debug_steps[] = '✓ STEP 1: Cleared existing cache';
             
             // Force fresh fetch
@@ -1672,7 +1690,7 @@ class SiteOverlay_Pro {
                 $debug_steps[] = '✓ STEP 2: API returned: ' . count($content) . ' items';
                 
                 // Test direct option storage
-                $cache_key = 'siteoverlay_cache'; // Use shorter name
+                $cache_key = 'so_cache'; // Use shorter name
                 $option_result = update_option($cache_key, $content);
                 $debug_steps[] = '✓ STEP 3: Direct update_option() result: ' . ($option_result ? 'TRUE' : 'FALSE');
                 
@@ -1693,7 +1711,7 @@ class SiteOverlay_Pro {
             }
             
             // Final cache verification using plugin method
-            $cached_verify = get_option('siteoverlay_cache', false);
+            $cached_verify = get_option('so_cache', false);
             $debug_steps[] = '✓ STEP 6: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items stored' : 'STORAGE FAILED');
             
             // Test if option name is blocked
