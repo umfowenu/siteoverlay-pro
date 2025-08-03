@@ -184,9 +184,9 @@ class SiteOverlay_Pro {
                 </div>
                 
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px;">
-                    <h3 style="margin: 0 0 10px 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('admin_boost_title', '🚀 Get Xagio')); ?></h3>
-                    <p style="margin: 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('admin_boost_subtitle', 'Boost your SEO rankings')); ?></p>
-                    <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" class="button button-primary" style="margin-top: 10px;"><?php echo esc_html($this->get_dynamic_content('admin_button_text', 'Get Xagio Now')); ?></a>
+                    <h3 style="margin: 0 0 10px 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Get Xagio')); ?></h3>
+                    <p style="margin: 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Boost your SEO rankings')); ?></p>
+                    <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" class="button button-primary" style="margin-top: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
                 </div>
                 
                 <div style="background: #e2e3e5; border: 1px solid #d6d8db; padding: 20px; border-radius: 5px;">

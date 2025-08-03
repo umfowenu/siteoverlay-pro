@@ -25,11 +25,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         'xagio_affiliate_url' => 'https://xagio.net/?ref=siteoverlay',
         'support_url' => 'https://siteoverlay.24hr.pro/support',
         'training_url' => 'https://siteoverlay.24hr.pro/training',
-        // Admin page dynamic content
-        'admin_boost_title' => '🚀 Get Xagio',
-        'admin_boost_subtitle' => 'Boost your SEO rankings',
-        'admin_button_text' => 'Get Xagio Now',
-        // Meta box dynamic content (already being used)
+        // Meta box dynamic content (used in both admin page and meta boxes)
         'metabox_boost_title' => '🚀 Boost Your SEO Rankings',
         'metabox_boost_subtitle' => 'Get Xagio - The #1 SEO Tool for Rank & Rent Success',
         'metabox_button_text' => 'Get Xagio Now',
@@ -46,10 +42,10 @@ class SiteOverlay_Dynamic_Content_Manager {
      */
     private function get_key_mapping() {
         return array(
-            // API Key => Display Key
-            'preview_title_text' => 'admin_boost_title',
-            'preview_button_text' => 'admin_button_text',
-            'preview_subtitle_text' => 'admin_boost_subtitle',
+            // API Key => Display Key (now using metabox_* keys for consistency)
+            'preview_title_text' => 'metabox_boost_title',
+            'preview_button_text' => 'metabox_button_text',
+            'preview_subtitle_text' => 'metabox_boost_subtitle',
             'metabox_title_text' => 'metabox_boost_title',
             'metabox_subtitle_text' => 'metabox_boost_subtitle',
             'metabox_button_text' => 'metabox_button_text',
