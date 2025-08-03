@@ -145,6 +145,7 @@ class SiteOverlay_Dynamic_Content_Manager {
      */
     private function find_optimal_chunk_size($content) {
         error_log('=== FIND_OPTIMAL_CHUNK_SIZE START ===');
+        error_log('EMERGENCY DEBUG: Raw content structure: ' . print_r($content, true));
         
         if (empty($content)) {
             error_log('Content is empty, returning 1');
@@ -167,9 +168,10 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         // Get content keys for testing
         $content_keys = array_keys($content);
+        error_log('EMERGENCY DEBUG: Content keys: ' . print_r($content_keys, true));
         
         foreach ($test_sizes as $size) {
-            error_log("Testing chunk size: {$size}");
+            error_log("=== TESTING CHUNK SIZE: {$size} ===");
             
             // Get test keys for this chunk size
             $test_keys = array_slice($content_keys, 0, $size);
@@ -178,27 +180,42 @@ class SiteOverlay_Dynamic_Content_Manager {
             // Build test data from original content (same as fixed main method)
             $test_data = array();
             foreach ($test_keys as $key) {
-                $test_data[$key] = $content[$key];
-                error_log("Added test item: {$key} = " . substr($content[$key], 0, 50) . "...");
+                if (isset($content[$key])) {
+                    $test_data[$key] = $content[$key];
+                    error_log("EMERGENCY DEBUG: Added test item: {$key} = " . var_export($content[$key], true));
+                } else {
+                    error_log("EMERGENCY DEBUG: WARNING - Key {$key} not found in content!");
+                }
             }
             
+            error_log("EMERGENCY DEBUG: Final test data structure: " . print_r($test_data, true));
             error_log("Test data for size {$size}: " . count($test_data) . " items");
             
             if (count($test_data) > 0) {
                 // Test if this size works
                 $test_key = 'so_cache_size_test';
+                error_log("EMERGENCY DEBUG: About to call update_option with key: {$test_key}");
+                error_log("EMERGENCY DEBUG: Data being stored: " . serialize($test_data));
+                error_log("EMERGENCY DEBUG: Serialized size: " . strlen(serialize($test_data)) . " bytes");
+                
                 $result = update_option($test_key, $test_data);
-                error_log("update_option test result for size {$size}: " . ($result ? 'SUCCESS' : 'FAILED'));
+                error_log("EMERGENCY DEBUG: update_option result: " . var_export($result, true));
                 
-                $verify = get_option($test_key, 'NOT_FOUND');
-                error_log("get_option verification: " . ($verify !== 'NOT_FOUND' ? 'FOUND' : 'NOT_FOUND'));
-                
-                delete_option($test_key);
-                
-                if ($result && $verify !== 'NOT_FOUND') {
-                    error_log("Optimal chunk size found: {$size} items");
-                    error_log('=== FIND_OPTIMAL_CHUNK_SIZE END (SUCCESS) ===');
-                    return $size;
+                if ($result) {
+                    $verify = get_option($test_key, 'NOT_FOUND');
+                    error_log("EMERGENCY DEBUG: get_option verification: " . ($verify !== 'NOT_FOUND' ? 'FOUND (' . count($verify) . ' items)' : 'NOT_FOUND'));
+                    
+                    delete_option($test_key);
+                    
+                    if ($verify !== 'NOT_FOUND') {
+                        error_log("✅ EMERGENCY DEBUG: Size {$size} WORKS! Returning this size.");
+                        error_log('=== FIND_OPTIMAL_CHUNK_SIZE END (SUCCESS) ===');
+                        return $size;
+                    } else {
+                        error_log("❌ EMERGENCY DEBUG: Size {$size} - update_option returned TRUE but get_option failed");
+                    }
+                } else {
+                    error_log("❌ EMERGENCY DEBUG: Size {$size} - update_option returned FALSE");
                 }
             } else {
                 error_log("No test data created for size {$size} - skipping");
@@ -206,7 +223,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         }
         
         // Fallback to single items
-        error_log("All chunk sizes failed, using fallback: 1 item");
+        error_log("❌ EMERGENCY DEBUG: All chunk sizes failed, using fallback: 1 item");
         error_log('=== FIND_OPTIMAL_CHUNK_SIZE END (FALLBACK) ===');
         return 1;
     }
