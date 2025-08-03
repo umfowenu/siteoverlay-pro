@@ -24,7 +24,16 @@ class SiteOverlay_Dynamic_Content_Manager {
         'upgrade_message' => 'Upgrade to unlock all SiteOverlay Pro features',
         'xagio_affiliate_url' => 'https://xagio.net/?ref=siteoverlay',
         'support_url' => 'https://siteoverlay.24hr.pro/support',
-        'training_url' => 'https://siteoverlay.24hr.pro/training'
+        'training_url' => 'https://siteoverlay.24hr.pro/training',
+        // Admin page dynamic content
+        'admin_boost_title' => '🚀 Get Xagio',
+        'admin_boost_subtitle' => 'Boost your SEO rankings',
+        'admin_button_text' => 'Get Xagio Now',
+        // Meta box dynamic content (already being used)
+        'metabox_boost_title' => '🚀 Boost Your SEO Rankings',
+        'metabox_boost_subtitle' => 'Get Xagio - The #1 SEO Tool for Rank & Rent Success',
+        'metabox_button_text' => 'Get Xagio Now',
+        'metabox_disclaimer' => 'Affiliate Link - We earn a commission at no cost to you'
     );
     
     public function __construct() {
