@@ -40,19 +40,41 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         error_log('=== SITEOVERLAY DEBUG START ===');
         
-        // Use options table directly (bypass transients)
-        $cached_content = get_option($cache_key, false);
-        $cache_expiry = get_option($cache_expiry_key, 0);
+        // Use options table directly (READ FROM CHUNKS)
+        $cache_count = get_option('so_cache_count', 0);
+        $cache_expiry = get_option('so_cache_expiry', 0);
         
-        error_log('STEP 1 - Cache check: ' . ($cached_content ? 'FOUND (' . count($cached_content) . ' items)' : 'NOT FOUND'));
+        error_log('STEP 1 - Cache check: Found ' . $cache_count . ' chunks');
         error_log('STEP 1 - Expiry: ' . $cache_expiry . ' (current time: ' . time() . ')');
+        
+        if ($cache_count > 0) {
+            // Reconstruct content from chunks
+            $cached_content = array();
+            for ($i = 0; $i < $cache_count; $i++) {
+                $chunk = get_option('so_cache_' . $i, false);
+                if ($chunk && is_array($chunk)) {
+                    $cached_content = array_merge($cached_content, $chunk);
+                } else {
+                    // If any chunk is missing, invalidate entire cache
+                    error_log('STEP 2 - Chunk ' . $i . ' missing, invalidating cache');
+                    $cached_content = false;
+                    break;
+                }
+            }
+        } else {
+            $cached_content = false;
+        }
         
         // Check if cache is expired
         if ($cached_content && time() > $cache_expiry) {
-            error_log('STEP 2 - Cache EXPIRED, clearing');
+            error_log('STEP 2 - Cache EXPIRED, clearing chunks');
             $cached_content = false;
-            delete_option($cache_key);
-            delete_option($cache_expiry_key);
+            // Clear all chunks
+            for ($i = 0; $i < $cache_count; $i++) {
+                delete_option('so_cache_' . $i);
+            }
+            delete_option('so_cache_count');
+            delete_option('so_cache_expiry');
         }
         
         // Return cached content if available
@@ -69,30 +91,48 @@ class SiteOverlay_Dynamic_Content_Manager {
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
             error_log('STEP 5 - API SUCCESS: Got ' . count($fresh_content) . ' items');
             
-            // Cache using options table
+            // Cache using options table (SPLIT INTO CHUNKS)
             $expiry_time = time() + $this->cache_duration;
-            error_log('STEP 6 - Setting expiry to: ' . $expiry_time . ' (duration: ' . $this->cache_duration . ')');
             
-            $option_set = update_option($cache_key, $fresh_content);
-            error_log('STEP 7 - update_option result: ' . ($option_set ? 'TRUE' : 'FALSE'));
+            // Split content into chunks of 5 items each
+            $chunks = array_chunk($fresh_content, 5, true);
+            $chunk_count = count($chunks);
             
-            $expiry_set = update_option($cache_expiry_key, $expiry_time);
-            error_log('STEP 8 - update_option expiry result: ' . ($expiry_set ? 'TRUE' : 'FALSE'));
+            error_log('STEP 6 - Splitting ' . count($fresh_content) . ' items into ' . $chunk_count . ' chunks');
             
-            // Verify options storage IMMEDIATELY
-            $verify_options = get_option($cache_key);
-            $verify_expiry = get_option($cache_expiry_key);
+            // Store each chunk separately
+            $all_chunks_stored = true;
+            for ($i = 0; $i < $chunk_count; $i++) {
+                $chunk_key = 'so_cache_' . $i;
+                $chunk_result = update_option($chunk_key, $chunks[$i]);
+                error_log('STEP 7.' . $i . ' - Chunk ' . $i . ' storage: ' . ($chunk_result ? 'SUCCESS' : 'FAILED'));
+                if (!$chunk_result) {
+                    $all_chunks_stored = false;
+                }
+            }
             
-            error_log('STEP 9 - IMMEDIATE verify content: ' . ($verify_options ? 'FOUND (' . count($verify_options) . ' items)' : 'NOT FOUND'));
-            error_log('STEP 10 - IMMEDIATE verify expiry: ' . ($verify_expiry ? 'FOUND (' . $verify_expiry . ')' : 'NOT FOUND'));
+            // Store metadata
+            $count_result = update_option('so_cache_count', $chunk_count);
+            $expiry_result = update_option('so_cache_expiry', $expiry_time);
             
-            // Check database directly
-            global $wpdb;
-            $db_check = $wpdb->get_var($wpdb->prepare(
-                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s",
-                $cache_key
-            ));
-            error_log('STEP 11 - DIRECT DB check: ' . ($db_check ? 'FOUND in database' : 'NOT FOUND in database'));
+            error_log('STEP 8 - Metadata storage - Count: ' . ($count_result ? 'SUCCESS' : 'FAILED') . ', Expiry: ' . ($expiry_result ? 'SUCCESS' : 'FAILED'));
+            
+            // Verify chunk storage
+            if ($all_chunks_stored) {
+                error_log('STEP 9 - All chunks stored successfully');
+                
+                // Verify by reconstructing
+                $verify_content = array();
+                for ($i = 0; $i < $chunk_count; $i++) {
+                    $verify_chunk = get_option('so_cache_' . $i, false);
+                    if ($verify_chunk && is_array($verify_chunk)) {
+                        $verify_content = array_merge($verify_content, $verify_chunk);
+                    }
+                }
+                error_log('STEP 10 - Verification: Reconstructed ' . count($verify_content) . ' items from chunks');
+            } else {
+                error_log('STEP 9 - Some chunks failed to store');
+            }
             
             error_log('=== SITEOVERLAY DEBUG END (FRESH) ===');
             return $fresh_content;
@@ -261,11 +301,23 @@ class SiteOverlay_Dynamic_Content_Manager {
      * Clear content cache (options table version)
      */
     public function clear_cache() {
-        // Clear both transients (if they worked) and options
+        // Clear chunk-based cache
+        $cache_count = get_option('so_cache_count', 0);
+        
+        // Clear all chunks
+        for ($i = 0; $i < $cache_count; $i++) {
+            delete_option('so_cache_' . $i);
+        }
+        
+        // Clear metadata
+        delete_option('so_cache_count');
+        delete_option('so_cache_expiry');
+        
+        // Clear legacy cache (if any)
         delete_transient('so_cache');
         delete_option('so_cache');
-        delete_option('so_cache_expiry');
-        error_log('SiteOverlay: Cache cleared (both transients and options)');
+        
+        error_log('SiteOverlay: Cache cleared (' . $cache_count . ' chunks cleared)');
     }
     
     /**
@@ -273,9 +325,21 @@ class SiteOverlay_Dynamic_Content_Manager {
      */
     public function debug_api_connection() {
         $fresh_content = $this->fetch_content_from_api();
-        $cached_content = get_transient('so_cache');
-        if (!$cached_content) {
-            $cached_content = get_option('so_cache', false);
+        // Check for chunk-based cache
+        $cache_count = get_option('so_cache_count', 0);
+        if ($cache_count > 0) {
+            $cached_content = array();
+            for ($i = 0; $i < $cache_count; $i++) {
+                $chunk = get_option('so_cache_' . $i, false);
+                if ($chunk && is_array($chunk)) {
+                    $cached_content = array_merge($cached_content, $chunk);
+                } else {
+                    $cached_content = false;
+                    break;
+                }
+            }
+        } else {
+            $cached_content = false;
         }
         
         // Test cache setting

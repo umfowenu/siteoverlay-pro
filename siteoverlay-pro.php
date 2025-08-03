@@ -193,8 +193,22 @@ class SiteOverlay_Pro {
                     <h3 style="margin: 0 0 10px 0; color: #383d41;">🔄 Dynamic Content</h3>
                     <?php if (isset($this->dynamic_content_manager)): ?>
                         <?php 
-                                        // Check cache status using options table instead of transients
-                $cached_content = get_option('so_cache', false);
+                                        // Check cache status using chunk-based options table
+                $cache_count = get_option('so_cache_count', 0);
+                if ($cache_count > 0) {
+                    $cached_content = array();
+                    for ($i = 0; $i < $cache_count; $i++) {
+                        $chunk = get_option('so_cache_' . $i, false);
+                        if ($chunk && is_array($chunk)) {
+                            $cached_content = array_merge($cached_content, $chunk);
+                        } else {
+                            $cached_content = false;
+                            break;
+                        }
+                    }
+                } else {
+                    $cached_content = false;
+                }
                         $content_count = $cached_content ? count($cached_content) : 0;
                         
                         // Add debug information
@@ -224,7 +238,9 @@ class SiteOverlay_Pro {
             <?php
             // Force initial content load and cache if not already cached
             if (isset($this->dynamic_content_manager)) {
-                $cached_check = get_option('so_cache', false);
+                // Check chunk-based cache
+                $cache_count = get_option('so_cache_count', 0);
+                $cached_check = ($cache_count > 0);
                 if (!$cached_check) {
                     // Force load content to establish cache
                     $initial_content = $this->dynamic_content_manager->get_dynamic_content();
@@ -241,7 +257,22 @@ class SiteOverlay_Pro {
                     <?php
                     // Test API connection live
                     $debug_info = $this->dynamic_content_manager->debug_api_connection();
-                    $cached_content = get_option('so_cache', false);
+                    // Check chunk-based cache for debug display
+                    $cache_count = get_option('so_cache_count', 0);
+                    if ($cache_count > 0) {
+                        $cached_content = array();
+                        for ($i = 0; $i < $cache_count; $i++) {
+                            $chunk = get_option('so_cache_' . $i, false);
+                            if ($chunk && is_array($chunk)) {
+                                $cached_content = array_merge($cached_content, $chunk);
+                            } else {
+                                $cached_content = false;
+                                break;
+                            }
+                        }
+                    } else {
+                        $cached_content = false;
+                    }
                     ?>
                     
                     <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">
@@ -388,9 +419,20 @@ class SiteOverlay_Pro {
                         echo '• Options Table Accessible: ' . ($options_count !== null ? '✅' : '❌') . '<br>';
                         echo '• Total Options: ' . $options_count . '<br>';
                         
-                        // Check for our specific option
-                        $our_option = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'so_cache'));
-                        echo '• Our Cache in DB: ' . ($our_option ? '✅ FOUND' : '❌ NOT FOUND') . '</p>';
+                        // Check for our chunk-based cache
+                        $cache_count = get_option('so_cache_count', 0);
+                        $chunk_status = '';
+                        if ($cache_count > 0) {
+                            $found_chunks = 0;
+                            for ($i = 0; $i < $cache_count; $i++) {
+                                $chunk_exists = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'so_cache_' . $i));
+                                if ($chunk_exists) $found_chunks++;
+                            }
+                            $chunk_status = '✅ FOUND (' . $found_chunks . '/' . $cache_count . ' chunks)';
+                        } else {
+                            $chunk_status = '❌ NOT FOUND';
+                        }
+                        echo '• Our Cache in DB: ' . $chunk_status . '</p>';
                         ?>
                     </div>
                     
@@ -1707,10 +1749,14 @@ class SiteOverlay_Pro {
         if (isset($this->dynamic_content_manager)) {
             $debug_steps = array();
             
-            // Clear existing cache
-            delete_option('so_cache');
+            // Clear existing chunk-based cache
+            $cache_count = get_option('so_cache_count', 0);
+            for ($i = 0; $i < $cache_count; $i++) {
+                delete_option('so_cache_' . $i);
+            }
+            delete_option('so_cache_count');
             delete_option('so_cache_expiry');
-            $debug_steps[] = '✓ STEP 1: Cleared existing cache';
+            $debug_steps[] = '✓ STEP 1: Cleared existing cache (' . $cache_count . ' chunks)';
             
             // Force fresh fetch
             $content = $this->dynamic_content_manager->get_dynamic_content();
@@ -1740,9 +1786,23 @@ class SiteOverlay_Pro {
                 $debug_steps[] = '❌ STEP 2: API failed or returned invalid data';
             }
             
-            // Final cache verification using plugin method
-            $cached_verify = get_option('so_cache', false);
-            $debug_steps[] = '✓ STEP 6: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items stored' : 'STORAGE FAILED');
+            // Final cache verification using chunk-based method
+            $final_cache_count = get_option('so_cache_count', 0);
+            if ($final_cache_count > 0) {
+                $cached_verify = array();
+                for ($i = 0; $i < $final_cache_count; $i++) {
+                    $chunk = get_option('so_cache_' . $i, false);
+                    if ($chunk && is_array($chunk)) {
+                        $cached_verify = array_merge($cached_verify, $chunk);
+                    } else {
+                        $cached_verify = false;
+                        break;
+                    }
+                }
+            } else {
+                $cached_verify = false;
+            }
+            $debug_steps[] = '✓ STEP 6: Final verification: ' . ($cached_verify ? count($cached_verify) . ' items stored in ' . $final_cache_count . ' chunks' : 'STORAGE FAILED');
             
             // Test if option name is blocked
             $test_key = 'test_siteoverlay_cache_' . time();
