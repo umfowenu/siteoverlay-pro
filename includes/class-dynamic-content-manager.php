@@ -55,7 +55,12 @@ class SiteOverlay_Dynamic_Content_Manager {
             
             // Store using dynamic chunking
             $storage_success = $this->store_content_chunks($fresh_content);
-            error_log('SiteOverlay: Dynamic chunking result: ' . ($storage_success ? 'SUCCESS' : 'FAILED'));
+            if ($storage_success) {
+                $stored_items = get_option('so_cache_stored_items', 0);
+                error_log('SiteOverlay: Dynamic chunking SUCCESS - stored ' . $stored_items . '/' . count($fresh_content) . ' items');
+            } else {
+                error_log('SiteOverlay: Dynamic chunking FAILED - no items stored');
+            }
             
             error_log('=== SITEOVERLAY DEBUG END (FRESH) ===');
             return $fresh_content;
@@ -68,6 +73,7 @@ class SiteOverlay_Dynamic_Content_Manager {
     
     /**
      * Store content using dynamic chunking based on WordPress limits
+     * Now handles partial failures gracefully - continues processing even if some chunks fail
      */
     private function store_content_chunks($content) {
         error_log('=== STORE_CONTENT_CHUNKS START ===');
@@ -88,9 +94,12 @@ class SiteOverlay_Dynamic_Content_Manager {
         $this->clear_all_chunks();
         error_log('Cleared existing chunks');
         
-        // Store each chunk
+        // Store each chunk - track successful and failed chunks
         $stored_chunks = 0;
+        $successful_chunks = array();
+        $failed_chunks = array();
         $content_keys = array_keys($content);
+        $stored_items_count = 0;
         
         for ($i = 0; $i < $chunk_count; $i++) {
             $chunk_key = "so_cache_{$i}";
@@ -115,29 +124,45 @@ class SiteOverlay_Dynamic_Content_Manager {
             $verify = get_option($chunk_key, 'NOT_FOUND');
             error_log("Immediate get_option({$chunk_key}): " . ($verify !== 'NOT_FOUND' ? 'FOUND' : 'NOT_FOUND'));
             
-            if ($result) {
+            if ($result && $verify !== 'NOT_FOUND') {
                 $stored_chunks++;
+                $successful_chunks[] = $i;
+                $stored_items_count += count($chunk_data);
+                error_log("✅ CHUNK {$i} STORED SUCCESSFULLY ({$stored_items_count} items total so far)");
             } else {
-                error_log('STORAGE FAILED AT: update_option failed for chunk ' . $i);
-                error_log("CHUNK {$i} STORAGE FAILED - ABORTING");
-                $this->clear_all_chunks();
-                error_log('=== STORE_CONTENT_CHUNKS END (FAILED) ===');
-                return false;
+                $failed_chunks[] = $i;
+                error_log("❌ CHUNK {$i} STORAGE FAILED - CONTINUING WITH OTHER CHUNKS");
+                // Continue processing instead of aborting
             }
         }
         
-        // Store metadata
-        $count_result = update_option('so_cache_count', $chunk_count);
-        $total_result = update_option('so_cache_total_items', count($content));
-        $expiry_result = update_option('so_cache_expiry', $expiry_time);
+        error_log("Chunk storage summary: {$stored_chunks}/{$chunk_count} successful");
+        error_log("Successful chunks: " . implode(', ', $successful_chunks));
+        error_log("Failed chunks: " . implode(', ', $failed_chunks));
         
-        error_log("Metadata storage - count: " . ($count_result ? 'SUCCESS' : 'FAILED') . 
-                  ", total: " . ($total_result ? 'SUCCESS' : 'FAILED') . 
-                  ", expiry: " . ($expiry_result ? 'SUCCESS' : 'FAILED'));
-        
-        error_log("Successfully stored {$stored_chunks}/{$chunk_count} chunks with " . count($content) . " total items");
-        error_log('=== STORE_CONTENT_CHUNKS END (SUCCESS) ===');
-        return true;
+        // Only store metadata if we have at least one successful chunk
+        if ($stored_chunks > 0) {
+            // Store metadata about successful chunks
+            $count_result = update_option('so_cache_count', $chunk_count);
+            $total_result = update_option('so_cache_total_items', $total_items);
+            $expiry_result = update_option('so_cache_expiry', $expiry_time);
+            $successful_result = update_option('so_cache_successful_chunks', $successful_chunks);
+            $stored_items_result = update_option('so_cache_stored_items', $stored_items_count);
+            
+            error_log("Metadata storage - count: " . ($count_result ? 'SUCCESS' : 'FAILED') . 
+                      ", total: " . ($total_result ? 'SUCCESS' : 'FAILED') . 
+                      ", expiry: " . ($expiry_result ? 'SUCCESS' : 'FAILED') .
+                      ", successful_chunks: " . ($successful_result ? 'SUCCESS' : 'FAILED') .
+                      ", stored_items: " . ($stored_items_result ? 'SUCCESS' : 'FAILED'));
+            
+            error_log("PARTIAL SUCCESS: Stored {$stored_chunks}/{$chunk_count} chunks with {$stored_items_count}/{$total_items} items");
+            error_log('=== STORE_CONTENT_CHUNKS END (PARTIAL SUCCESS) ===');
+            return true; // Return success for partial storage
+        } else {
+            error_log("COMPLETE FAILURE: No chunks could be stored");
+            error_log('=== STORE_CONTENT_CHUNKS END (COMPLETE FAILURE) ===');
+            return false;
+        }
     }
     
     /**
@@ -230,11 +255,14 @@ class SiteOverlay_Dynamic_Content_Manager {
     
     /**
      * Retrieve content from chunks
+     * Now handles partial chunk storage gracefully
      */
     private function retrieve_content_chunks() {
         $cache_count = get_option('so_cache_count', 0);
         $total_items = get_option('so_cache_total_items', 0);
         $cache_expiry = get_option('so_cache_expiry', 0);
+        $successful_chunks = get_option('so_cache_successful_chunks', array());
+        $stored_items_count = get_option('so_cache_stored_items', 0);
         
         // Check expiry
         if ($cache_expiry > 0 && time() > $cache_expiry) {
@@ -243,28 +271,43 @@ class SiteOverlay_Dynamic_Content_Manager {
             return false;
         }
         
-        if ($cache_count == 0) {
+        if ($cache_count == 0 || empty($successful_chunks)) {
+            error_log('SiteOverlay: No cache chunks available');
             return false;
         }
         
-        // Reconstruct content from chunks
+        error_log("SiteOverlay: Attempting to retrieve from chunks: " . implode(', ', $successful_chunks));
+        
+        // Reconstruct content from successful chunks only
         $content = array();
-        for ($i = 0; $i < $cache_count; $i++) {
-            $chunk = get_option("so_cache_{$i}", false);
+        $retrieved_chunks = 0;
+        $missing_chunks = array();
+        
+        foreach ($successful_chunks as $chunk_index) {
+            $chunk = get_option("so_cache_{$chunk_index}", false);
             if ($chunk && is_array($chunk)) {
                 $content = array_merge($content, $chunk);
+                $retrieved_chunks++;
+                error_log("SiteOverlay: Successfully retrieved chunk {$chunk_index} with " . count($chunk) . " items");
             } else {
-                error_log("SiteOverlay: Chunk {$i} missing, invalidating cache");
-                $this->clear_all_chunks();
-                return false;
+                $missing_chunks[] = $chunk_index;
+                error_log("SiteOverlay: Chunk {$chunk_index} is missing (was supposed to be successful)");
             }
         }
         
-        if (count($content) === $total_items) {
-            error_log("SiteOverlay: Successfully retrieved {$total_items} items from {$cache_count} chunks");
+        if ($retrieved_chunks > 0) {
+            $actual_items = count($content);
+            error_log("SiteOverlay: PARTIAL SUCCESS - Retrieved {$retrieved_chunks}/" . count($successful_chunks) . " chunks with {$actual_items} items");
+            
+            if (!empty($missing_chunks)) {
+                error_log("SiteOverlay: Missing chunks: " . implode(', ', $missing_chunks));
+            }
+            
+            // Return partial content even if some chunks are missing
+            // This allows the plugin to work with 9/14 items instead of 0/14
             return $content;
         } else {
-            error_log("SiteOverlay: Item count mismatch, invalidating cache");
+            error_log("SiteOverlay: No chunks could be retrieved, invalidating cache");
             $this->clear_all_chunks();
             return false;
         }
@@ -281,13 +324,15 @@ class SiteOverlay_Dynamic_Content_Manager {
             delete_option("so_cache_{$i}");
         }
         
-        // Clear metadata
+        // Clear all metadata (including new partial storage metadata)
         delete_option('so_cache_count');
         delete_option('so_cache_total_items');
         delete_option('so_cache_expiry');
+        delete_option('so_cache_successful_chunks');
+        delete_option('so_cache_stored_items');
         delete_transient('so_cache'); // Clear old transient too
         
-        error_log('SiteOverlay: All cache chunks cleared');
+        error_log('SiteOverlay: All cache chunks and metadata cleared');
     }
     
     /**
@@ -459,6 +504,14 @@ class SiteOverlay_Dynamic_Content_Manager {
         // Check for chunk-based cache using the centralized method
         $cached_content = $this->retrieve_content_chunks();
         
+        // Get partial storage statistics
+        $cache_stats = array(
+            'total_chunks' => get_option('so_cache_count', 0),
+            'successful_chunks' => get_option('so_cache_successful_chunks', array()),
+            'stored_items' => get_option('so_cache_stored_items', 0),
+            'total_items' => get_option('so_cache_total_items', 0)
+        );
+        
         // Test cache setting
         $cache_test_result = 'SKIPPED';
         if ($fresh_content) {
@@ -474,6 +527,7 @@ class SiteOverlay_Dynamic_Content_Manager {
             'timeout' => $this->api_timeout,
             'fresh_content' => $fresh_content,
             'cached_content' => $cached_content,
+            'cache_stats' => $cache_stats,
             'cache_test' => $cache_test_result,
             'default_content' => $this->default_content
         );

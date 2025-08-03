@@ -634,6 +634,41 @@ class SiteOverlay_Pro {
                                 }
                                 echo '</div>';
                                 
+// LIVE CHUNKING DEBUG
+echo '<br><strong>🚨 LIVE CHUNKING DEBUG:</strong><br>';
+echo '<div style="background: #fff; padding: 10px; border: 1px solid #ccc;">';
+try {
+    if (isset($this->dynamic_content_manager)) {
+        $reflection = new ReflectionClass($this->dynamic_content_manager);
+        $fetch_method = $reflection->getMethod('fetch_content_from_api');
+        $fetch_method->setAccessible(true);
+        $real_content = $fetch_method->invoke($this->dynamic_content_manager);
+        if ($real_content && count($real_content) > 0) {
+            echo "Testing " . count($real_content) . " items in chunks of 5<br>";
+            $chunk_count = ceil(count($real_content) / 5);
+            $content_keys = array_keys($real_content);
+            $all_work = true;
+            for ($i = 0; $i < $chunk_count; $i++) {
+                $chunk_keys = array_slice($content_keys, $i * 5, 5);
+                $chunk_data = array();
+                foreach ($chunk_keys as $key) {
+                    $chunk_data[$key] = $real_content[$key];
+                }
+                $result = update_option("test_chunk_{$i}", $chunk_data);
+                $verify = get_option("test_chunk_{$i}", 'NOT_FOUND');
+                delete_option("test_chunk_{$i}");
+                $works = ($result && $verify !== 'NOT_FOUND');
+                echo "Chunk {$i} (" . count($chunk_data) . " items): " . ($works ? 'SUCCESS' : 'FAILED') . "<br>";
+                if (!$works) $all_work = false;
+            }
+            echo "<br>Result: " . ($all_work ? 'ALL CHUNKS WORK' : 'SOME CHUNKS FAILED');
+        }
+    }
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
+echo '</div>';
+
                                 // ERROR LOG CAPTURE
                                 echo '<br><strong>📝 RECENT ERROR LOG (if WP_DEBUG enabled):</strong><br>';
                                 echo '<div style="font-family: monospace; font-size: 11px; background: #f0f0f0; padding: 10px; border: 1px solid #ccc; max-height: 200px; overflow-y: auto;">';
