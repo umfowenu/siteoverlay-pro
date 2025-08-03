@@ -1850,8 +1850,19 @@ echo '</div>';
     public function get_dynamic_content($key, $fallback = '') {
         if (isset($this->dynamic_content_manager)) {
             $content = $this->dynamic_content_manager->get_dynamic_content();
-            return isset($content[$key]) ? $content[$key] : $fallback;
+            
+            // Debug logging for key requests
+            error_log("SiteOverlay: DISPLAY REQUEST - Looking for key '{$key}'");
+            if (isset($content[$key])) {
+                error_log("SiteOverlay: DISPLAY SUCCESS - Found '{$key}' = " . substr($content[$key], 0, 50) . "...");
+                return $content[$key];
+            } else {
+                error_log("SiteOverlay: DISPLAY FALLBACK - Key '{$key}' not found, using fallback: " . substr($fallback, 0, 50) . "...");
+                error_log("SiteOverlay: DISPLAY DEBUG - Available keys: " . implode(', ', array_keys($content)));
+                return $fallback;
+            }
         }
+        error_log("SiteOverlay: DISPLAY ERROR - Dynamic content manager not available for key '{$key}'");
         return $fallback;
     }
     

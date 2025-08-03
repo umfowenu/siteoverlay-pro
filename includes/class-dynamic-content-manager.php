@@ -41,6 +41,57 @@ class SiteOverlay_Dynamic_Content_Manager {
     }
     
     /**
+     * API Key to Display Key Mapping
+     * Maps Railway API keys to plugin display keys
+     */
+    private function get_key_mapping() {
+        return array(
+            // API Key => Display Key
+            'preview_title_text' => 'admin_boost_title',
+            'preview_button_text' => 'admin_button_text',
+            'preview_subtitle_text' => 'admin_boost_subtitle',
+            'metabox_title_text' => 'metabox_boost_title',
+            'metabox_subtitle_text' => 'metabox_boost_subtitle',
+            'metabox_button_text' => 'metabox_button_text',
+            'metabox_disclaimer_text' => 'metabox_disclaimer',
+            // Direct mappings (no translation needed)
+            'xagio_affiliate_url' => 'xagio_affiliate_url',
+            'support_url' => 'support_url',
+            'training_url' => 'training_url',
+            'upgrade_message' => 'upgrade_message'
+        );
+    }
+    
+    /**
+     * Apply key mapping to convert API keys to display keys
+     */
+    private function apply_key_mapping($api_content) {
+        if (!is_array($api_content)) {
+            return $api_content;
+        }
+        
+        $mapping = $this->get_key_mapping();
+        $mapped_content = array();
+        
+        error_log('SiteOverlay: KEY MAPPING DEBUG - Original API keys: ' . implode(', ', array_keys($api_content)));
+        
+        foreach ($api_content as $api_key => $value) {
+            if (isset($mapping[$api_key])) {
+                $display_key = $mapping[$api_key];
+                $mapped_content[$display_key] = $value;
+                error_log("SiteOverlay: MAPPED {$api_key} -> {$display_key} = " . substr($value, 0, 50) . "...");
+            } else {
+                // Keep unmapped keys as-is
+                $mapped_content[$api_key] = $value;
+                error_log("SiteOverlay: UNMAPPED (kept as-is) {$api_key} = " . substr($value, 0, 50) . "...");
+            }
+        }
+        
+        error_log('SiteOverlay: KEY MAPPING DEBUG - Final display keys: ' . implode(', ', array_keys($mapped_content)));
+        return $mapped_content;
+    }
+
+    /**
      * Get dynamic content with DEEP DEBUGGING
      */
     public function get_dynamic_content() {
@@ -50,9 +101,13 @@ class SiteOverlay_Dynamic_Content_Manager {
         $cached_content = $this->retrieve_content_chunks();
         
         if ($cached_content && is_array($cached_content) && count($cached_content) > 0) {
-            error_log('SiteOverlay: Returning chunked cache (' . count($cached_content) . ' items)');
+            error_log('SiteOverlay: Retrieved chunked cache (' . count($cached_content) . ' items)');
+            
+            // Apply key mapping to cached content
+            $mapped_content = $this->apply_key_mapping($cached_content);
+            error_log('SiteOverlay: After key mapping (' . count($mapped_content) . ' items)');
             error_log('=== SITEOVERLAY DEBUG END (CACHED) ===');
-            return $cached_content;
+            return $mapped_content;
         }
         
         // Fetch fresh content from API
@@ -62,7 +117,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         if ($fresh_content && is_array($fresh_content) && count($fresh_content) > 0) {
             error_log('SiteOverlay: API returned ' . count($fresh_content) . ' items');
             
-            // Store using dynamic chunking
+            // Store original API content using dynamic chunking (preserve API keys for caching)
             $storage_success = $this->store_content_chunks($fresh_content);
             if ($storage_success) {
                 $stored_items = get_option('so_cache_stored_items', 0);
@@ -71,13 +126,24 @@ class SiteOverlay_Dynamic_Content_Manager {
                 error_log('SiteOverlay: Dynamic chunking FAILED - no items stored');
             }
             
+            // Apply key mapping to fresh content for display
+            $mapped_fresh_content = $this->apply_key_mapping($fresh_content);
+            error_log('SiteOverlay: Applied key mapping to fresh content (' . count($mapped_fresh_content) . ' display keys)');
+            
             error_log('=== SITEOVERLAY DEBUG END (FRESH) ===');
-            return $fresh_content;
+            return $mapped_fresh_content;
         }
         
         error_log('SiteOverlay: API failed, using default content');
+        
+        // Apply key mapping to default content for consistency
+        $mapped_default_content = $this->apply_key_mapping($this->default_content);
+        // Merge with original defaults to ensure all display keys are available
+        $final_default_content = array_merge($this->default_content, $mapped_default_content);
+        
+        error_log('SiteOverlay: Applied key mapping to default content (' . count($final_default_content) . ' total keys)');
         error_log('=== SITEOVERLAY DEBUG END (DEFAULT) ===');
-        return $this->default_content;
+        return $final_default_content;
     }
     
     /**
