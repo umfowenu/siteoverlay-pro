@@ -755,7 +755,7 @@ class SiteOverlay_Pro {
                 <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
                 <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" 
                    style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
-                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_disclaimer', 'Affiliate Link - We earn a commission at no cost to you')); ?></div>
+
             </div>
         </div>
         <?php
@@ -783,7 +783,7 @@ class SiteOverlay_Pro {
                 <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
                 <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" 
                    style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
-                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_disclaimer', 'Affiliate Link - We earn a commission at no cost to you')); ?></div>
+
             </div>
             
             <!-- Current Overlay Section -->

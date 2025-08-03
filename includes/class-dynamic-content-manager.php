@@ -29,7 +29,7 @@ class SiteOverlay_Dynamic_Content_Manager {
         'metabox_boost_title' => '🚀 Boost Your SEO Rankings',
         'metabox_boost_subtitle' => 'Get Xagio - The #1 SEO Tool for Rank & Rent Success',
         'metabox_button_text' => 'Get Xagio Now',
-        'metabox_disclaimer' => 'Affiliate Link - We earn a commission at no cost to you'
+
     );
     
     public function __construct() {
@@ -49,7 +49,7 @@ class SiteOverlay_Dynamic_Content_Manager {
             'metabox_title_text' => 'metabox_boost_title',
             'metabox_subtitle_text' => 'metabox_boost_subtitle',
             'metabox_button_text' => 'metabox_button_text',
-            'metabox_disclaimer_text' => 'metabox_disclaimer',
+
             // Direct mappings (no translation needed)
             'xagio_affiliate_url' => 'xagio_affiliate_url',
             'support_url' => 'support_url',
