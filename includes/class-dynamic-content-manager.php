@@ -75,10 +75,9 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         $expiry_time = time() + $this->cache_duration;
         
-        // EMERGENCY WORKAROUND: Force optimal chunk size to 5 
-        // Based on test results showing 5 items work but 10+ fail
-        $optimal_chunk_size = 5;
-        error_log("EMERGENCY WORKAROUND: Forcing chunk size to {$optimal_chunk_size} items (bypassing find_optimal_chunk_size)");
+        // Test to find optimal chunk size for this hosting environment
+        $optimal_chunk_size = $this->find_optimal_chunk_size($content);
+        error_log("Using chunk size of {$optimal_chunk_size} items");
         
         // Calculate chunking for flat associative array
         $total_items = count($content);
