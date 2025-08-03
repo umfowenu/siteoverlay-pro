@@ -576,104 +576,41 @@ class SiteOverlay_Pro {
                                     echo '❌ STEP 4: Dynamic Content Manager not available<br>';
                                 }
                                 
-                                // DIRECT STORAGE DEBUG TEST
-                                echo '<br><strong>🚨 DIRECT STORAGE DEBUG TEST:</strong><br>';
+                                echo '<br><strong>🚨 SIMPLE DEBUG TEST:</strong><br>';
+                                echo '<div style="background: #fff; padding: 10px; border: 1px solid #ccc;">';
 
-                                // FORCE ENABLE DEBUG FOR THIS TEST
-                                if (!defined('WP_DEBUG')) {
-                                    define('WP_DEBUG', true);
-                                }
-                                if (!defined('WP_DEBUG_LOG')) {
-                                    define('WP_DEBUG_LOG', true);
-                                }
-
-                                // CAPTURE ERROR LOG OUTPUT DIRECTLY
-                                ob_start();
-                                error_reporting(E_ALL);
-                                ini_set('log_errors', 1);
-                                ini_set('error_log', '/tmp/siteoverlay_debug.log');
-
-                                echo '<div style="font-family: monospace; font-size: 11px; background: #fff; padding: 10px; border: 1px solid #ccc; max-height: 300px; overflow-y: auto;">';
-                                
-                                if (isset($this->dynamic_content_manager)) {
-                                    try {
-                                        // Capture all output
-                                        ob_start();
+                                try {
+                                    echo "Step 1: Starting test...<br>";
+                                    
+                                    if (isset($this->dynamic_content_manager)) {
+                                        echo "Step 2: Dynamic content manager found<br>";
                                         
-                                        echo "=== DIRECT STORAGE TEST START ===<br>";
-                                        
-                                        // Get fresh content first
+                                        // Test method access
+                                        echo "Step 3: Testing method access...<br>";
                                         $reflection = new ReflectionClass($this->dynamic_content_manager);
-                                        $fetch_method = $reflection->getMethod('fetch_content_from_api');
-                                        $fetch_method->setAccessible(true);
-                                        $fresh_content = $fetch_method->invoke($this->dynamic_content_manager);
+                                        echo "Step 4: Reflection created<br>";
                                         
-                                        echo "Fresh content fetched: " . (is_array($fresh_content) ? count($fresh_content) . " items" : "FAILED") . "<br>";
+                                        $method = $reflection->getMethod('store_content_chunks');
+                                        echo "Step 5: Method found<br>";
                                         
-                                        if (is_array($fresh_content) && count($fresh_content) > 0) {
-                                            echo "Sample item format: " . print_r(array_slice($fresh_content, 0, 1, true), true) . "<br>";
-                                            
-                                            // Test the optimal size function first
-                                            $size_method = $reflection->getMethod('find_optimal_chunk_size');
-                                            $size_method->setAccessible(true);
-                                            $optimal_size = $size_method->invoke($this->dynamic_content_manager, $fresh_content);
-                                            echo "Optimal chunk size detected: {$optimal_size}<br>";
-                                            
-                                            // Test the storage method directly
-                                            $store_method = $reflection->getMethod('store_content_chunks');
-                                            $store_method->setAccessible(true);
-                                            
-                                            echo "Calling store_content_chunks...<br>";
-                                            $storage_result = $store_method->invoke($this->dynamic_content_manager, $fresh_content);
-                                            echo "Storage method returned: " . ($storage_result ? "TRUE" : "FALSE") . "<br>";
-                                            
-                                            // Check what actually got stored
-                                            echo "<br>Checking storage results:<br>";
-                                            $chunk_count = get_option('so_cache_count', 0);
-                                            $total_items = get_option('so_cache_total_items', 0);
-                                            echo "so_cache_count: {$chunk_count}<br>";
-                                            echo "so_cache_total_items: {$total_items}<br>";
-                                            
-                                            // Check individual chunks
-                                            for ($i = 0; $i < 5; $i++) {
-                                                $chunk_data = get_option("so_cache_{$i}", 'NOT_FOUND');
-                                                if ($chunk_data !== 'NOT_FOUND') {
-                                                    echo "so_cache_{$i}: " . (is_array($chunk_data) ? count($chunk_data) . " items" : "INVALID") . "<br>";
-                                                } else {
-                                                    echo "so_cache_{$i}: NOT FOUND<br>";
-                                                }
-                                            }
-                                            
-                                            // Test retrieval
-                                            $retrieve_method = $reflection->getMethod('retrieve_content_chunks');
-                                            $retrieve_method->setAccessible(true);
-                                            $retrieved = $retrieve_method->invoke($this->dynamic_content_manager);
-                                            echo "<br>Retrieved content: " . ($retrieved ? count($retrieved) . " items" : "NONE") . "<br>";
-                                            
-                                        } else {
-                                            echo "Cannot test storage - no fresh content available<br>";
-                                        }
+                                        // Test with simple data
+                                        $test_data = array('test_key' => 'test_value');
+                                        echo "Step 6: Test data created<br>";
                                         
-                                        echo "=== DIRECT STORAGE TEST END ===<br>";
+                                        $method->setAccessible(true);
+                                        echo "Step 7: Method made accessible<br>";
                                         
-                                        $output = ob_get_clean();
-                                        echo $output;
+                                        $result = $method->invoke($this->dynamic_content_manager, $test_data);
+                                        echo "Step 8: Method called - Result: " . ($result ? 'TRUE' : 'FALSE') . "<br>";
                                         
-                                    } catch (Exception $e) {
-                                        echo "ERROR: " . $e->getMessage() . "<br>";
+                                    } else {
+                                        echo "ERROR: Dynamic content manager not found<br>";
                                     }
-                                } else {
-                                    echo "Dynamic Content Manager not available<br>";
+                                    
+                                } catch (Throwable $e) {
+                                    echo "FATAL ERROR: " . $e->getMessage() . "<br>";
+                                    echo "File: " . $e->getFile() . " Line: " . $e->getLine() . "<br>";
                                 }
-                                
-                                // SHOW ANY ERRORS THAT OCCURRED
-                                $errors = ob_get_contents();
-                                if (!empty($errors)) {
-                                    echo "<br><strong>PHP Errors/Warnings:</strong><br>";
-                                    echo nl2br(esc_html($errors));
-                                }
-                                ob_end_clean();
-
                                 echo '</div>';
                                 
                                 // ERROR LOG CAPTURE
