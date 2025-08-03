@@ -161,7 +161,7 @@ class SiteOverlay_Pro {
             
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
-                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
+                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
             </div>
             
             <!-- Status Cards -->
@@ -708,7 +708,7 @@ class SiteOverlay_Pro {
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
-                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
             </div>
             
             <!-- Disabled State Message -->
@@ -768,7 +768,7 @@ class SiteOverlay_Pro {
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
-                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
             </div>
             
             <!-- Status Display -->
