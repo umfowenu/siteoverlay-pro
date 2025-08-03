@@ -417,6 +417,36 @@ class SiteOverlay_Pro {
                             echo '✓ STEP 2: API fetch - ' . (is_array($fresh_content) ? count($fresh_content) . ' items received' : 'FAILED') . '<br>';
                             
                             if (is_array($fresh_content) && count($fresh_content) > 0) {
+                                echo '<strong>Investigating API content blocking:</strong><br>';
+                                
+                                // Test storing individual items
+                                $item_count = 0;
+                                foreach ($fresh_content as $key => $value) {
+                                    $test_result = update_option('test_item_' . $item_count, array($key => $value));
+                                    delete_option('test_item_' . $item_count);
+                                    echo '• Item ' . $item_count . ' (' . $key . '): ' . ($test_result ? 'WORKS' : 'BLOCKED') . '<br>';
+                                    $item_count++;
+                                    if ($item_count >= 5) break; // Test first 5 items only
+                                }
+                                
+                                // Test storing different sized chunks
+                                echo '<br><strong>Testing different data sizes:</strong><br>';
+                                $chunk_sizes = array(1, 3, 5, 10, 14);
+                                foreach ($chunk_sizes as $size) {
+                                    $chunk = array_slice($fresh_content, 0, $size, true);
+                                    $test_result = update_option('test_chunk_' . $size, $chunk);
+                                    delete_option('test_chunk_' . $size);
+                                    echo '• ' . $size . ' items: ' . ($test_result ? 'WORKS' : 'BLOCKED') . '<br>';
+                                }
+                                
+                                // Test data serialization
+                                echo '<br><strong>Data analysis:</strong><br>';
+                                $serialized = serialize($fresh_content);
+                                echo '• Serialized size: ' . strlen($serialized) . ' bytes<br>';
+                                echo '• Contains URLs: ' . (strpos($serialized, 'http') !== false ? 'YES' : 'NO') . '<br>';
+                                echo '• Contains "warrior": ' . (stripos($serialized, 'warrior') !== false ? 'YES' : 'NO') . '<br>';
+                                echo '<br>';
+                                
                                 // Test different option name patterns
                                 $test_names = array(
                                     'so_cache' => array('test' => 'data'),
