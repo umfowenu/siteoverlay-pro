@@ -576,40 +576,61 @@ class SiteOverlay_Pro {
                                     echo '❌ STEP 4: Dynamic Content Manager not available<br>';
                                 }
                                 
-                                echo '<br><strong>🚨 SIMPLE DEBUG TEST:</strong><br>';
+                                echo '<br><strong>🚨 SIZE & STRUCTURE TEST:</strong><br>';
                                 echo '<div style="background: #fff; padding: 10px; border: 1px solid #ccc;">';
 
                                 try {
-                                    echo "Step 1: Starting test...<br>";
-                                    
                                     if (isset($this->dynamic_content_manager)) {
-                                        echo "Step 2: Dynamic content manager found<br>";
-                                        
-                                        // Test method access
-                                        echo "Step 3: Testing method access...<br>";
                                         $reflection = new ReflectionClass($this->dynamic_content_manager);
-                                        echo "Step 4: Reflection created<br>";
+                                        $fetch_method = $reflection->getMethod('fetch_content_from_api');
+                                        $fetch_method->setAccessible(true);
+                                        $real_content = $fetch_method->invoke($this->dynamic_content_manager);
                                         
-                                        $method = $reflection->getMethod('store_content_chunks');
-                                        echo "Step 5: Method found<br>";
-                                        
-                                        // Test with simple data
-                                        $test_data = array('test_key' => 'test_value');
-                                        echo "Step 6: Test data created<br>";
-                                        
-                                        $method->setAccessible(true);
-                                        echo "Step 7: Method made accessible<br>";
-                                        
-                                        $result = $method->invoke($this->dynamic_content_manager, $test_data);
-                                        echo "Step 8: Method called - Result: " . ($result ? 'TRUE' : 'FALSE') . "<br>";
-                                        
-                                    } else {
-                                        echo "ERROR: Dynamic content manager not found<br>";
+                                        if ($real_content && count($real_content) > 0) {
+                                            $store_method = $reflection->getMethod('store_content_chunks');
+                                            $store_method->setAccessible(true);
+                                            
+                                            // Test 1: Single real item
+                                            $first_key = array_keys($real_content)[0];
+                                            $single_item = array($first_key => $real_content[$first_key]);
+                                            echo "Test 1 - Single real item: ";
+                                            $result1 = $store_method->invoke($this->dynamic_content_manager, $single_item);
+                                            echo ($result1 ? 'TRUE' : 'FALSE') . "<br>";
+                                            
+                                            // Test 2: Two real items  
+                                            $keys = array_keys($real_content);
+                                            $two_items = array(
+                                                $keys[0] => $real_content[$keys[0]],
+                                                $keys[1] => $real_content[$keys[1]]
+                                            );
+                                            echo "Test 2 - Two real items: ";
+                                            $result2 = $store_method->invoke($this->dynamic_content_manager, $two_items);
+                                            echo ($result2 ? 'TRUE' : 'FALSE') . "<br>";
+                                            
+                                            // Test 3: Five real items
+                                            $five_items = array_slice($real_content, 0, 5, true);
+                                            echo "Test 3 - Five real items: ";
+                                            $result3 = $store_method->invoke($this->dynamic_content_manager, $five_items);
+                                            echo ($result3 ? 'TRUE' : 'FALSE') . "<br>";
+                                            
+                                            // Test 4: Structure test with simple keys
+                                            $simple_structure = array();
+                                            $count = 0;
+                                            foreach ($real_content as $key => $value) {
+                                                $simple_structure['key_' . $count] = 'value_' . $count;
+                                                $count++;
+                                                if ($count >= 14) break;
+                                            }
+                                            echo "Test 4 - 14 items, simple structure: ";
+                                            $result4 = $store_method->invoke($this->dynamic_content_manager, $simple_structure);
+                                            echo ($result4 ? 'TRUE' : 'FALSE') . "<br>";
+                                            
+                                        } else {
+                                            echo "No real content available<br>";
+                                        }
                                     }
-                                    
                                 } catch (Throwable $e) {
-                                    echo "FATAL ERROR: " . $e->getMessage() . "<br>";
-                                    echo "File: " . $e->getFile() . " Line: " . $e->getLine() . "<br>";
+                                    echo "ERROR: " . $e->getMessage() . "<br>";
                                 }
                                 echo '</div>';
                                 
