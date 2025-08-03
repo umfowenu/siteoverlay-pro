@@ -143,10 +143,15 @@ class SiteOverlay_Dynamic_Content_Manager {
      * Find optimal chunk size by testing progressively smaller chunks
      */
     private function find_optimal_chunk_size($content) {
-        if (empty($content)) return 1;
+        error_log('=== FIND_OPTIMAL_CHUNK_SIZE START ===');
         
-        $content_array = array_values($content);
-        $total_items = count($content_array);
+        if (empty($content)) {
+            error_log('Content is empty, returning 1');
+            return 1;
+        }
+        
+        $total_items = count($content);
+        error_log("Testing chunk sizes for {$total_items} total items");
         
         // Test chunk sizes from largest to smallest
         $test_sizes = array(
@@ -157,32 +162,51 @@ class SiteOverlay_Dynamic_Content_Manager {
             1
         );
         
+        error_log('Will test sizes: ' . implode(', ', $test_sizes));
+        
+        // Get content keys for testing
+        $content_keys = array_keys($content);
+        
         foreach ($test_sizes as $size) {
-            $test_chunk = array_slice($content_array, 0, $size);
+            error_log("Testing chunk size: {$size}");
             
-            // Convert to associative array for testing
+            // Get test keys for this chunk size
+            $test_keys = array_slice($content_keys, 0, $size);
+            error_log("Test keys: " . implode(', ', $test_keys));
+            
+            // Build test data from original content (same as fixed main method)
             $test_data = array();
-            foreach ($test_chunk as $item) {
-                if (is_array($item) && count($item) == 1) {
-                    $key = array_keys($item)[0];
-                    $value = array_values($item)[0];
-                    $test_data[$key] = $value;
-                }
+            foreach ($test_keys as $key) {
+                $test_data[$key] = $content[$key];
+                error_log("Added test item: {$key} = " . substr($content[$key], 0, 50) . "...");
             }
             
-            // Test if this size works
-            $test_key = 'so_cache_size_test';
-            $result = update_option($test_key, $test_data);
-            delete_option($test_key);
+            error_log("Test data for size {$size}: " . count($test_data) . " items");
             
-            if ($result) {
-                error_log("SiteOverlay: Optimal chunk size found: {$size} items");
-                return $size;
+            if (count($test_data) > 0) {
+                // Test if this size works
+                $test_key = 'so_cache_size_test';
+                $result = update_option($test_key, $test_data);
+                error_log("update_option test result for size {$size}: " . ($result ? 'SUCCESS' : 'FAILED'));
+                
+                $verify = get_option($test_key, 'NOT_FOUND');
+                error_log("get_option verification: " . ($verify !== 'NOT_FOUND' ? 'FOUND' : 'NOT_FOUND'));
+                
+                delete_option($test_key);
+                
+                if ($result && $verify !== 'NOT_FOUND') {
+                    error_log("Optimal chunk size found: {$size} items");
+                    error_log('=== FIND_OPTIMAL_CHUNK_SIZE END (SUCCESS) ===');
+                    return $size;
+                }
+            } else {
+                error_log("No test data created for size {$size} - skipping");
             }
         }
         
         // Fallback to single items
-        error_log("SiteOverlay: Using fallback chunk size: 1 item");
+        error_log("All chunk sizes failed, using fallback: 1 item");
+        error_log('=== FIND_OPTIMAL_CHUNK_SIZE END (FALLBACK) ===');
         return 1;
     }
     

@@ -598,6 +598,12 @@ class SiteOverlay_Pro {
                                         if (is_array($fresh_content) && count($fresh_content) > 0) {
                                             echo "Sample item format: " . print_r(array_slice($fresh_content, 0, 1, true), true) . "<br>";
                                             
+                                            // Test the optimal size function first
+                                            $size_method = $reflection->getMethod('find_optimal_chunk_size');
+                                            $size_method->setAccessible(true);
+                                            $optimal_size = $size_method->invoke($this->dynamic_content_manager, $fresh_content);
+                                            echo "Optimal chunk size detected: {$optimal_size}<br>";
+                                            
                                             // Test the storage method directly
                                             $store_method = $reflection->getMethod('store_content_chunks');
                                             $store_method->setAccessible(true);
