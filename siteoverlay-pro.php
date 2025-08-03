@@ -257,22 +257,21 @@ class SiteOverlay_Pro {
                     <?php
                     // Test API connection live
                     $debug_info = $this->dynamic_content_manager->debug_api_connection();
-                    // Check chunk-based cache for debug display
-                    $cache_count = get_option('so_cache_count', 0);
-                    if ($cache_count > 0) {
-                        $cached_content = array();
-                        for ($i = 0; $i < $cache_count; $i++) {
-                            $chunk = get_option('so_cache_' . $i, false);
-                            if ($chunk && is_array($chunk)) {
-                                $cached_content = array_merge($cached_content, $chunk);
-                            } else {
-                                $cached_content = false;
-                                break;
-                            }
-                        }
-                    } else {
+                    // Check chunk-based cache for debug display using SAME method as content manager
+                    try {
+                        $reflection = new ReflectionClass($this->dynamic_content_manager);
+                        $retrieve_method = $reflection->getMethod('retrieve_content_chunks');
+                        $retrieve_method->setAccessible(true);
+                        $cached_content = $retrieve_method->invoke($this->dynamic_content_manager);
+                    } catch (Exception $e) {
                         $cached_content = false;
+                        error_log('Debug cache retrieval failed: ' . $e->getMessage());
                     }
+                    
+                    // Also get cache statistics for display
+                    $cache_count = get_option('so_cache_count', 0);
+                    $successful_chunks = get_option('so_cache_successful_chunks', array());
+                    $stored_items = get_option('so_cache_stored_items', 0);
                     ?>
                     
                     <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">
@@ -282,15 +281,16 @@ class SiteOverlay_Pro {
                         Fresh Content: <?php echo $debug_info['fresh_content'] ? '<span style="color: green;">✅ SUCCESS (' . count($debug_info['fresh_content']) . ' items)</span>' : '<span style="color: red;">❌ FAILED</span>'; ?><br>
                         Cached Content: <?php 
                         if ($cached_content && is_array($cached_content)) {
-                            echo '<span style="color: green;">✅ OPTIONS CACHE (' . count($cached_content) . ' items)</span>';
-                            echo '<br><small>First 3 items: ';
+                            echo '<span style="color: green;">✅ PARTIAL CACHE (' . count($cached_content) . '/' . get_option('so_cache_total_items', 0) . ' items)</span>';
+                            echo '<br><small>Chunks: ' . count($successful_chunks) . '/' . $cache_count . ' successful</small>';
+                            echo '<br><small><strong>🎯 First 3 REAL items:</strong><br>';
                             $first_three = array_slice($cached_content, 0, 3, true);
                             foreach ($first_three as $key => $value) {
-                                echo $key . ': ' . substr($value, 0, 30) . '...<br>';
+                                echo '<span style="color: blue;">' . $key . '</span>: ' . substr($value, 0, 50) . '...<br>';
                             }
                             echo '</small>';
                         } else {
-                            echo '<span style="color: orange;">⚠️ No cache (using options table)</span>';
+                            echo '<span style="color: orange;">⚠️ No cache available</span>';
                         }
                         ?><br>
                         Cache Test: <?php 
@@ -639,6 +639,25 @@ class SiteOverlay_Pro {
                                             
                                             if ($result5) {
                                                 echo "<strong style='color: green;'>✅ SUCCESS: Real API content cached successfully!</strong><br>";
+                                                
+                                                // Immediately verify the cache contains real data
+                                                $retrieve_method = $reflection->getMethod('retrieve_content_chunks');
+                                                $retrieve_method->setAccessible(true);
+                                                $verification = $retrieve_method->invoke($this->dynamic_content_manager);
+                                                
+                                                if ($verification && is_array($verification)) {
+                                                    $verify_keys = array_keys($verification);
+                                                    echo "<strong>🔍 VERIFICATION:</strong> Cache contains " . count($verification) . " items<br>";
+                                                    echo "<strong>Sample keys:</strong> " . implode(', ', array_slice($verify_keys, 0, 3)) . "<br>";
+                                                    
+                                                    if (strpos($verify_keys[0], 'key_') === 0) {
+                                                        echo "<strong style='color: red;'>❌ STILL DUMMY DATA!</strong><br>";
+                                                    } else {
+                                                        echo "<strong style='color: green;'>✅ REAL API DATA CONFIRMED!</strong><br>";
+                                                    }
+                                                } else {
+                                                    echo "<strong style='color: orange;'>⚠️ Verification failed - cache not retrievable</strong><br>";
+                                                }
                                             } else {
                                                 echo "<strong style='color: red;'>❌ FAILED: Real API content could not be cached!</strong><br>";
                                             }
