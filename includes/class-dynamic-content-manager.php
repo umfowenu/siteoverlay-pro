@@ -136,12 +136,16 @@ class SiteOverlay_Dynamic_Content_Manager {
         
         error_log('SiteOverlay: API failed, using default content');
         
+        // 🚨 DEBUG: Log default content being returned
+        error_log('DEFAULT CONTENT DEBUG: Original defaults: ' . print_r($this->default_content, true));
+        
         // Apply key mapping to default content for consistency
         $mapped_default_content = $this->apply_key_mapping($this->default_content);
         // Merge with original defaults to ensure all display keys are available
         $final_default_content = array_merge($this->default_content, $mapped_default_content);
         
         error_log('SiteOverlay: Applied key mapping to default content (' . count($final_default_content) . ' total keys)');
+        error_log('DEFAULT CONTENT DEBUG: Final default keys: ' . implode(', ', array_keys($final_default_content)));
         error_log('=== SITEOVERLAY DEBUG END (DEFAULT) ===');
         return $final_default_content;
     }
@@ -153,6 +157,14 @@ class SiteOverlay_Dynamic_Content_Manager {
     private function store_content_chunks($content) {
         error_log('=== STORE_CONTENT_CHUNKS START ===');
         error_log('Content input: ' . (is_array($content) ? count($content) . ' items' : 'NOT ARRAY'));
+        
+        // 🚨 DEBUG: Log exact content being stored to identify dummy data source
+        if (is_array($content)) {
+            error_log('STORAGE DEBUG: Input content keys: ' . implode(', ', array_keys($content)));
+            foreach ($content as $key => $value) {
+                error_log("STORAGE DEBUG: {$key} = " . substr($value, 0, 100) . "...");
+            }
+        }
         
         $expiry_time = time() + $this->cache_duration;
         
@@ -361,6 +373,12 @@ class SiteOverlay_Dynamic_Content_Manager {
         foreach ($successful_chunks as $chunk_index) {
             $chunk = get_option("so_cache_{$chunk_index}", false);
             if ($chunk && is_array($chunk)) {
+                // 🚨 DEBUG: Log individual chunk content
+                error_log("CHUNK {$chunk_index} DEBUG: Keys = " . implode(', ', array_keys($chunk)));
+                foreach ($chunk as $key => $value) {
+                    error_log("CHUNK {$chunk_index} DEBUG: {$key} = " . substr($value, 0, 50) . "...");
+                }
+                
                 $content = array_merge($content, $chunk);
                 $retrieved_chunks++;
                 error_log("SiteOverlay: Successfully retrieved chunk {$chunk_index} with " . count($chunk) . " items");
@@ -373,6 +391,12 @@ class SiteOverlay_Dynamic_Content_Manager {
         if ($retrieved_chunks > 0) {
             $actual_items = count($content);
             error_log("SiteOverlay: PARTIAL SUCCESS - Retrieved {$retrieved_chunks}/" . count($successful_chunks) . " chunks with {$actual_items} items");
+            
+            // 🚨 DEBUG: Log what's actually being retrieved from cache
+            error_log('CACHE RETRIEVAL DEBUG: Retrieved content keys: ' . implode(', ', array_keys($content)));
+            foreach ($content as $key => $value) {
+                error_log("CACHE RETRIEVAL DEBUG: {$key} = " . substr($value, 0, 100) . "...");
+            }
             
             if (!empty($missing_chunks)) {
                 error_log("SiteOverlay: Missing chunks: " . implode(', ', $missing_chunks));
@@ -455,13 +479,19 @@ class SiteOverlay_Dynamic_Content_Manager {
         $data = json_decode($body, true);
         
         if (isset($data['success']) && $data['success'] && isset($data['content'])) {
+            // 🚨 DEBUG: Log raw API response to identify dummy data source
+            error_log('SiteOverlay: RAW API RESPONSE: ' . print_r($data, true));
+            
             // Convert Railway API format to plugin format
             $formatted_content = array();
             foreach ($data['content'] as $key => $item) {
                 if (isset($item['value'])) {
                     $formatted_content[$key] = $item['value'];
+                    error_log("SiteOverlay: API PARSING - {$key} = " . substr($item['value'], 0, 50) . "...");
                 }
             }
+            
+            error_log('SiteOverlay: FORMATTED API CONTENT KEYS: ' . implode(', ', array_keys($formatted_content)));
             return $formatted_content;
         }
         
@@ -511,12 +541,18 @@ class SiteOverlay_Dynamic_Content_Manager {
         $data = json_decode($body, true);
         
         if (isset($data['success']) && $data['success'] && isset($data['content'])) {
+            // 🚨 DEBUG: Log raw cURL API response to identify dummy data source
+            error_log('SiteOverlay: RAW cURL API RESPONSE: ' . print_r($data, true));
+            
             $formatted_content = array();
             foreach ($data['content'] as $key => $item) {
                 if (isset($item['value'])) {
                     $formatted_content[$key] = $item['value'];
+                    error_log("SiteOverlay: cURL API PARSING - {$key} = " . substr($item['value'], 0, 50) . "...");
                 }
             }
+            
+            error_log('SiteOverlay: cURL FORMATTED API CONTENT KEYS: ' . implode(', ', array_keys($formatted_content)));
             return $formatted_content;
         }
         
