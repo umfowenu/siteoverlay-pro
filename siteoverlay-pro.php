@@ -193,8 +193,8 @@ class SiteOverlay_Pro {
                     <h3 style="margin: 0 0 10px 0; color: #383d41;">🔄 Dynamic Content</h3>
                     <?php if (isset($this->dynamic_content_manager)): ?>
                         <?php 
-                        // Check cache status using options table instead of transients
-                        $cached_content = get_option('siteoverlay_dynamic_content', false);
+                                        // Check cache status using options table instead of transients
+                $cached_content = get_option('siteoverlay_cache', false);
                         $content_count = $cached_content ? count($cached_content) : 0;
                         
                         // Add debug information
@@ -224,7 +224,7 @@ class SiteOverlay_Pro {
             <?php
             // Force initial content load and cache if not already cached
             if (isset($this->dynamic_content_manager)) {
-                $cached_check = get_option('siteoverlay_dynamic_content', false);
+                $cached_check = get_option('siteoverlay_cache', false);
                 if (!$cached_check) {
                     // Force load content to establish cache
                     $initial_content = $this->dynamic_content_manager->get_dynamic_content();
@@ -241,7 +241,7 @@ class SiteOverlay_Pro {
                     <?php
                     // Test API connection live
                     $debug_info = $this->dynamic_content_manager->debug_api_connection();
-                    $cached_content = get_option('siteoverlay_dynamic_content', false);
+                    $cached_content = get_option('siteoverlay_cache', false);
                     ?>
                     
                     <div style="font-family: monospace; font-size: 12px; background: white; padding: 15px; border-radius: 3px; margin-bottom: 15px;">

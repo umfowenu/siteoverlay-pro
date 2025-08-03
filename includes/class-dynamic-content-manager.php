@@ -273,9 +273,9 @@ class SiteOverlay_Dynamic_Content_Manager {
      */
     public function debug_api_connection() {
         $fresh_content = $this->fetch_content_from_api();
-        $cached_content = get_transient('siteoverlay_dynamic_content');
+        $cached_content = get_transient('siteoverlay_cache');
         if (!$cached_content) {
-            $cached_content = get_option('siteoverlay_dynamic_content', false);
+            $cached_content = get_option('siteoverlay_cache', false);
         }
         
         // Test cache setting
