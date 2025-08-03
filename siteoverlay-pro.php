@@ -576,6 +576,106 @@ class SiteOverlay_Pro {
                                     echo '❌ STEP 4: Dynamic Content Manager not available<br>';
                                 }
                                 
+                                // DIRECT STORAGE DEBUG TEST
+                                echo '<br><strong>🚨 DIRECT STORAGE DEBUG TEST:</strong><br>';
+                                echo '<div style="font-family: monospace; font-size: 11px; background: #fff; padding: 10px; border: 1px solid #ccc; max-height: 300px; overflow-y: auto;">';
+                                
+                                if (isset($this->dynamic_content_manager)) {
+                                    try {
+                                        // Capture all output
+                                        ob_start();
+                                        
+                                        echo "=== DIRECT STORAGE TEST START ===<br>";
+                                        
+                                        // Get fresh content first
+                                        $reflection = new ReflectionClass($this->dynamic_content_manager);
+                                        $fetch_method = $reflection->getMethod('fetch_content_from_api');
+                                        $fetch_method->setAccessible(true);
+                                        $fresh_content = $fetch_method->invoke($this->dynamic_content_manager);
+                                        
+                                        echo "Fresh content fetched: " . (is_array($fresh_content) ? count($fresh_content) . " items" : "FAILED") . "<br>";
+                                        
+                                        if (is_array($fresh_content) && count($fresh_content) > 0) {
+                                            echo "Sample item format: " . print_r(array_slice($fresh_content, 0, 1, true), true) . "<br>";
+                                            
+                                            // Test the storage method directly
+                                            $store_method = $reflection->getMethod('store_content_chunks');
+                                            $store_method->setAccessible(true);
+                                            
+                                            echo "Calling store_content_chunks...<br>";
+                                            $storage_result = $store_method->invoke($this->dynamic_content_manager, $fresh_content);
+                                            echo "Storage method returned: " . ($storage_result ? "TRUE" : "FALSE") . "<br>";
+                                            
+                                            // Check what actually got stored
+                                            echo "<br>Checking storage results:<br>";
+                                            $chunk_count = get_option('so_cache_count', 0);
+                                            $total_items = get_option('so_cache_total_items', 0);
+                                            echo "so_cache_count: {$chunk_count}<br>";
+                                            echo "so_cache_total_items: {$total_items}<br>";
+                                            
+                                            // Check individual chunks
+                                            for ($i = 0; $i < 5; $i++) {
+                                                $chunk_data = get_option("so_cache_{$i}", 'NOT_FOUND');
+                                                if ($chunk_data !== 'NOT_FOUND') {
+                                                    echo "so_cache_{$i}: " . (is_array($chunk_data) ? count($chunk_data) . " items" : "INVALID") . "<br>";
+                                                } else {
+                                                    echo "so_cache_{$i}: NOT FOUND<br>";
+                                                }
+                                            }
+                                            
+                                            // Test retrieval
+                                            $retrieve_method = $reflection->getMethod('retrieve_content_chunks');
+                                            $retrieve_method->setAccessible(true);
+                                            $retrieved = $retrieve_method->invoke($this->dynamic_content_manager);
+                                            echo "<br>Retrieved content: " . ($retrieved ? count($retrieved) . " items" : "NONE") . "<br>";
+                                            
+                                        } else {
+                                            echo "Cannot test storage - no fresh content available<br>";
+                                        }
+                                        
+                                        echo "=== DIRECT STORAGE TEST END ===<br>";
+                                        
+                                        $output = ob_get_clean();
+                                        echo $output;
+                                        
+                                    } catch (Exception $e) {
+                                        echo "ERROR: " . $e->getMessage() . "<br>";
+                                    }
+                                } else {
+                                    echo "Dynamic Content Manager not available<br>";
+                                }
+                                
+                                echo '</div>';
+                                
+                                // ERROR LOG CAPTURE
+                                echo '<br><strong>📝 RECENT ERROR LOG (if WP_DEBUG enabled):</strong><br>';
+                                echo '<div style="font-family: monospace; font-size: 11px; background: #f0f0f0; padding: 10px; border: 1px solid #ccc; max-height: 200px; overflow-y: auto;">';
+                                
+                                // Try to read recent error log entries
+                                $debug_log = WP_CONTENT_DIR . '/debug.log';
+                                if (file_exists($debug_log)) {
+                                    $log_content = file_get_contents($debug_log);
+                                    $log_lines = explode("\n", $log_content);
+                                    $recent_lines = array_slice($log_lines, -50); // Last 50 lines
+                                    
+                                    $siteoverlay_lines = array_filter($recent_lines, function($line) {
+                                        return stripos($line, 'siteoverlay') !== false;
+                                    });
+                                    
+                                    if (count($siteoverlay_lines) > 0) {
+                                        foreach ($siteoverlay_lines as $line) {
+                                            echo esc_html($line) . "<br>";
+                                        }
+                                    } else {
+                                        echo "No SiteOverlay entries found in recent log<br>";
+                                    }
+                                } else {
+                                    echo "Debug log not found at {$debug_log}<br>";
+                                    echo "Try enabling WP_DEBUG_LOG in wp-config.php<br>";
+                                }
+                                
+                                echo '</div>';
+                                
                             } else {
                                 echo '❌ API fetch failed, cannot test cache storage<br>';
                             }
