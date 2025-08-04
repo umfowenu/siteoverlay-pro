@@ -1286,13 +1286,6 @@ class SiteOverlay_Pro {
                 'message' => $data['message'] ?? 'Invalid license key'
             );
         }
-
-        } else {
-            return array(
-                'success' => false,
-                'message' => $data['message'] ?? 'Invalid license key'
-            );
-        }
     }
     
     /**
