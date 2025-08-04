@@ -123,6 +123,23 @@ class SiteOverlay_Pro {
         // Get license status
         $license_status = $this->get_license_status();
         
+        // Handle debug actions - ADD PERMISSION CHECK
+        if (current_user_can('manage_options')) {
+            if (isset($_GET['clear_cache']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
+                $this->license_manager->clear_license_caches();
+                echo '<div class="notice notice-success"><p>✅ License caches cleared!</p></div>';
+            }
+
+            if (isset($_GET['run_background_check']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
+                $this->license_manager->background_license_check();
+                echo '<div class="notice notice-info"><p>🔄 Background license check triggered!</p></div>';
+            }
+
+            if (isset($_GET['debug_refresh'])) {
+                echo '<div class="notice notice-info"><p>🔍 Debug information refreshed!</p></div>';
+            }
+        }
+        
         // Count posts with overlays
         $posts_with_overlays = $wpdb->get_var(
             $wpdb->prepare(
@@ -423,6 +440,59 @@ class SiteOverlay_Pro {
                 <?php endif; ?>
                 
                 <div id="license-response" style="margin-top: 10px;"></div>
+            </div>
+            
+            <!-- License Debug Section -->
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                <h3>🔍 License Debug Information</h3>
+                
+                <?php
+                // Get debug information
+                $debug_info = $this->debug_license_status();
+                $license_manager = $this->license_manager;
+                ?>
+                
+                <div style="margin: 15px 0;">
+                    <h4>Current License Status:</h4>
+                    <table style="border-collapse: collapse; width: 100%;">
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>License Key:</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_key']; ?></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Status:</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_status'] ?: 'none'; ?></td>
+                        </tr>
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Expiry:</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_expiry'] ?: 'none'; ?></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Last Validated:</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_validated'] ?: 'never'; ?></td>
+                        </tr>
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Last Check:</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['last_check']; ?></td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <h4>Current Status Object:</h4>
+                    <pre style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; overflow-x: auto;">
+<?php echo print_r($debug_info['current_status'], true); ?>
+                    </pre>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <h4>Debug Actions:</h4>
+                    <p>
+                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-license&clear_cache=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🗑️ Clear License Caches</a>
+                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-license&run_background_check=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🔄 Run Background Check</a>
+                        <a href="<?php echo admin_url('admin.php?page=siteoverlay-license&debug_refresh=1'); ?>" class="button button-primary">🔍 Refresh Debug Info</a>
+                    </p>
+                </div>
             </div>
             
             <!-- Recent Overlays - Always available (constitutional rule) -->
