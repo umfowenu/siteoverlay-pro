@@ -138,7 +138,7 @@ class SiteOverlay_Pro {
     public function license_notice() {
         if (!$this->is_licensed()) {
             echo '<div class="notice notice-warning is-dismissible">';
-            echo '<p><strong>SiteOverlay Pro:</strong> Plugin is inactive. Activate your license to use SiteOverlay Pro. <a href="' . admin_url('options-general.php?page=siteoverlay-settings'); . '">Activate Now</a></p>';
+            echo '<p><strong>SiteOverlay Pro:</strong> Plugin is inactive. Activate your license to use SiteOverlay Pro. <a href="' . admin_url('options-general.php?page=siteoverlay-settings') . '">Activate Now</a></p>';
             echo '</div>';
         }
     }
