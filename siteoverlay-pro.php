@@ -57,8 +57,6 @@ class SiteOverlay_Pro {
             // License management AJAX handlers (always available)
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
-            add_action('wp_ajax_siteoverlay_refresh_content', array($this, 'ajax_refresh_content'));
-            add_action('wp_ajax_siteoverlay_force_cache', array($this, 'ajax_force_cache'));
         }
         
         // Frontend overlay display ALWAYS available (constitutional rule)
@@ -76,16 +74,6 @@ class SiteOverlay_Pro {
             require_once $dynamic_content_file;
             $this->dynamic_content_manager = new SiteOverlay_Dynamic_Content_Manager();
         }
-        
-        // TEMPORARILY COMMENT OUT LICENSE MANAGER - FILE MISSING
-        /*
-        // Load license manager (always available - constitutional rule)
-        $license_manager_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-license-manager.php';
-        if (file_exists($license_manager_file)) {
-            require_once $license_manager_file;
-            $this->license_manager = new SiteOverlay_License_Manager();
-        }
-        */
     }
     
     /**
@@ -132,70 +120,6 @@ class SiteOverlay_Pro {
         
         // Get license status
         $license_status = $this->get_license_status();
-        
-        // TEMPORARILY COMMENT OUT DEBUG ACTIONS - LICENSE MANAGER MISSING
-        /*
-        // Handle debug actions - SAFE VERSION
-        if (current_user_can('manage_options')) {
-            if (isset($_GET['clear_cache']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
-                if (isset($this->license_manager) && method_exists($this->license_manager, 'clear_license_caches')) {
-                    $this->license_manager->clear_license_caches();
-                    echo '<div class="notice notice-success"><p>✅ License caches cleared!</p></div>';
-                } else {
-                    echo '<div class="notice notice-error"><p>❌ Clear cache method not found!</p></div>';
-                }
-            }
-
-            if (isset($_GET['run_background_check']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
-                if (isset($this->license_manager) && method_exists($this->license_manager, 'background_license_check')) {
-                    $this->license_manager->background_license_check();
-                    echo '<div class="notice notice-info"><p>🔄 Background license check triggered!</p></div>';
-                } else {
-                    echo '<div class="notice notice-error"><p>❌ Background check method not found!</p></div>';
-                }
-            }
-
-            if (isset($_GET['debug_refresh'])) {
-                echo '<div class="notice notice-info"><p>🔍 Debug information refreshed!</p></div>';
-            }
-        }
-        */
-        
-        // TEMPORARY: Manual license cache clearing - FIXED VERSION
-        if (isset($_GET['manual_clear_license'])) {
-            // Clear all license-related WordPress options
-            delete_option('siteoverlay_license_key');
-            delete_option('siteoverlay_license_status'); 
-            delete_option('siteoverlay_license_expiry');
-            delete_option('siteoverlay_license_validated');
-            delete_option('siteoverlay_license_data');
-            delete_option('siteoverlay_license_email');
-            
-            // Clear transients
-            delete_transient('siteoverlay_license_last_check');
-            delete_transient('siteoverlay_license_cache');
-            
-            echo '<div class="notice notice-success"><p>✅ All license data manually cleared! <a href="' . remove_query_arg('manual_clear_license') . '">Refresh page to see results</a></p></div>';
-            // REMOVED THE AUTO-REFRESH SCRIPT
-        }
-        
-        // TEMPORARY: Manual license clearing - add this near the top of render_admin_page()
-        if (isset($_GET['force_clear_license'])) {
-            // Clear ALL license-related options
-            delete_option('siteoverlay_license_key');
-            delete_option('siteoverlay_license_status'); 
-            delete_option('siteoverlay_license_expiry');
-            delete_option('siteoverlay_license_validated');
-            delete_option('siteoverlay_license_data');
-            delete_option('siteoverlay_registration_email');
-            delete_option('siteoverlay_registration_name');
-            
-            // Clear transients
-            delete_transient('siteoverlay_license_last_check');
-            delete_transient('siteoverlay_license_cache');
-            
-            echo '<div class="notice notice-success"><p>✅ All license data forcefully cleared!</p></div>';
-        }
         
         // Count posts with overlays
         $posts_with_overlays = $wpdb->get_var(
@@ -258,9 +182,9 @@ class SiteOverlay_Pro {
                 </div>
                 
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px;">
-                    <h3 style="margin: 0 0 10px 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Get Xagio')); ?></h3>
-                    <p style="margin: 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Boost your SEO rankings')); ?></p>
-                    <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" class="button button-primary" style="margin-top: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
+                    <h3 style="margin: 0 0 10px 0; color: #856404;">🚀 Get Xagio</h3>
+                    <p style="margin: 0; color: #856404;">Boost your SEO rankings</p>
+                    <a href="https://xagio.net/?ref=siteoverlay" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Xagio Now</a>
                 </div>
             </div>
             
@@ -271,7 +195,7 @@ class SiteOverlay_Pro {
             $installation_guide_pdf_url = $this->get_dynamic_content('installation_guide_pdf_url', '#');
             ?>
             
-            <!-- Download & Documentation Section -->
+            <!-- Downloads & Documentation Section -->
             <div style="background: white; padding: 20px; margin: 20px 0; border: 1px solid #ddd;">
                 <h3>📥 Downloads & Documentation</h3>
                 <div style="margin: 15px 0;">
@@ -286,19 +210,6 @@ class SiteOverlay_Pro {
                     </p>
                 </div>
             </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            </div>
-            
-            <?php
-            // Force initial content load silently in background
-            if (isset($this->dynamic_content_manager)) {
-                $cache_count = get_option('so_cache_count', 0);
-                if ($cache_count == 0) {
-                    $initial_content = $this->dynamic_content_manager->get_dynamic_content();
-                }
-            }
-            ?>
             
             <!-- License Status Section -->
             <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
@@ -499,89 +410,6 @@ class SiteOverlay_Pro {
                 <div id="license-response" style="margin-top: 10px;"></div>
             </div>
             
-            <!-- License Debug Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; margin: 20px 0; border-radius: 5px;">
-                <h3>🔍 License Debug Information</h3>
-                
-                <?php
-                // TEMPORARILY COMMENT OUT - LICENSE MANAGER MISSING
-                // Get debug information
-                // $debug_info = $this->debug_license_status();
-                // $license_manager = $this->license_manager;
-                ?>
-                
-                <!-- TEMPORARILY COMMENTED OUT - LICENSE MANAGER MISSING -->
-                <!--
-                <div style="margin: 15px 0;">
-                    <h4>Current License Status:</h4>
-                    <table style="border-collapse: collapse; width: 100%;">
-                        <tr style="background: #f8f9fa;">
-                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>License Key:</strong></td>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_key']; ?></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Status:</strong></td>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_status'] ?: 'none'; ?></td>
-                        </tr>
-                        <tr style="background: #f8f9fa;">
-                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Expiry:</strong></td>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_expiry'] ?: 'none'; ?></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Last Validated:</strong></td>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['license_validated'] ?: 'never'; ?></td>
-                        </tr>
-                        <tr style="background: #f8f9fa;">
-                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Last Check:</strong></td>
-                            <td style="padding: 8px; border: 1px solid #ddd;"><?php echo $debug_info['last_check']; ?></td>
-                        </tr>
-                    </table>
-                </div>
-                
-                <div style="margin: 15px 0;">
-                    <h4>Current Status Object:</h4>
-                    <pre style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; overflow-x: auto;">
-<?php echo print_r($debug_info['current_status'], true); ?>
-                    </pre>
-                </div>
-                
-                <div style="margin: 15px 0;">
-                    <h4>Debug Actions:</h4>
-                    <p>
-                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-settings&clear_cache=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🗑️ Clear License Caches</a>
-                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-settings&run_background_check=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🔄 Run Background Check</a>
-                        <a href="<?php echo admin_url('admin.php?page=siteoverlay-settings&debug_refresh=1'); ?>" class="button button-primary">🔍 Refresh Debug Info</a>
-                    </p>
-                </div>
-                -->
-                
-                <div style="margin: 15px 0;">
-                    <h4>⚠️ License Debug Temporarily Disabled</h4>
-                    <p style="color: #856404;">License manager class file is missing. Debug functionality will be restored once the license manager is properly implemented.</p>
-                </div>
-                
-                <!-- Temporary Manual Clear Button -->
-                <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin: 20px 0;">
-                    <h4>🚨 Temporary License Reset</h4>
-                    <p>Since debug functions are disabled, use this manual reset:</p>
-                    <a href="?page=siteoverlay-settings&manual_clear_license=1" 
-                       class="button button-secondary" 
-                       onclick="return confirm('This will clear all license data. Continue?')">
-                       🗑️ Manual Clear All License Data
-                    </a>
-                </div>
-                
-                <!-- Force Clear Button -->
-                <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin: 20px 0;">
-                    <h4>🚨 Force Clear License Data</h4>
-                    <a href="?page=siteoverlay-settings&force_clear_license=1" 
-                       class="button button-secondary" 
-                       onclick="return confirm('This will completely clear all license data. Continue?')">
-                       🗑️ Force Clear All License Data
-                    </a>
-                </div>
-            </div>
-            
             <!-- Recent Overlays - Always available (constitutional rule) -->
             <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
                 <h2>Recent Overlays</h2>
@@ -618,10 +446,40 @@ class SiteOverlay_Pro {
                     <p>No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>">Create your first overlay</a></p>
                 <?php endif; ?>
             </div>
+            
+            <!-- Newsletter Section -->
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center;">
+                <h3 style="margin: 0 0 15px 0; color: #856404;">📧 Get SEO & Rank & Rent Tips</h3>
+                <p style="margin: 0 0 15px 0; color: #856404;">Subscribe to our newsletter for free tips and updates</p>
+                <input type="email" id="newsletter-email-admin" placeholder="Enter your email" style="padding: 8px; width: 300px; margin-right: 10px;" />
+                <button type="button" class="button button-primary" id="subscribe-newsletter-admin">Subscribe</button>
+            </div>
         </div>
         
         <script>
         jQuery(document).ready(function($) {
+            // Newsletter signup
+            $('#subscribe-newsletter-admin').on('click', function() {
+                var email = $('#newsletter-email-admin').val();
+                if (!email) {
+                    alert('Please enter your email address');
+                    return;
+                }
+                
+                $.post(ajaxurl, {
+                    action: 'siteoverlay_newsletter_signup',
+                    email: email,
+                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        alert('Thank you for subscribing!');
+                        $('#newsletter-email-admin').val('');
+                    } else {
+                        alert('Error: ' + response.data);
+                    }
+                });
+            });
+            
             // License functionality
             $('#show-trial-form').on('click', function() {
                 $('#trial-registration-form').show();
@@ -797,62 +655,6 @@ class SiteOverlay_Pro {
                 }
             });
         });
-        
-        // Dynamic Content Refresh Function
-        function refreshDynamicContent() {
-            var button = event.target;
-            button.disabled = true;
-            button.textContent = 'Refreshing...';
-            
-            var data = {
-                action: 'siteoverlay_refresh_content',
-                nonce: '<?php echo wp_create_nonce('siteoverlay_admin_nonce'); ?>'
-            };
-            
-            fetch(ajaxurl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + result.data);
-                }
-            })
-            .catch(error => {
-                alert('Error refreshing content');
-                console.error('Error:', error);
-            })
-            .finally(() => {
-                button.disabled = false;
-                button.textContent = 'Refresh Content';
-            });
-        }
-        
-        // Removed debug function
-        
-        // Simple cache refresh function
-        function forceCache() {
-            var data = {
-                action: 'siteoverlay_force_cache',
-                nonce: '<?php echo wp_create_nonce('siteoverlay_admin_nonce'); ?>'
-            };
-            
-            fetch(ajaxurl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    location.reload();
-                }
-            });
-        }
         </script>
         <?php
     }
@@ -934,11 +736,19 @@ class SiteOverlay_Pro {
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
-                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></div>
-                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
-                <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" 
-                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
-
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
+                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
+                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
+            </div>
+            
+            <!-- Email Newsletter Section -->
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
+                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
+                <input type="email" id="newsletter-email" placeholder="Enter your email" 
+                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
+                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
             </div>
         </div>
         <?php
@@ -962,11 +772,11 @@ class SiteOverlay_Pro {
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
-                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></div>
-                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
-                <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" 
-                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
-
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
+                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
+                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
             </div>
             
             <!-- Current Overlay Section -->
@@ -997,6 +807,14 @@ class SiteOverlay_Pro {
                     <button type="button" class="button button-primary" id="save-overlay" style="font-size: 11px; padding: 2px 6px; width: 100%;">Save Overlay</button>
                 </div>
             <?php endif; ?>
+            
+            <!-- Email Newsletter Section -->
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
+                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
+                <input type="email" id="newsletter-email" placeholder="Enter your email" 
+                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
+                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
+            </div>
             
             <!-- Stats Section -->
             <div style="padding: 8px 12px; color: #666; font-size: 10px; border-top: 1px solid #ddd;">
@@ -1263,7 +1081,7 @@ class SiteOverlay_Pro {
      * CRITICAL FIX: Validate license with Railway API
      */
     private function validate_license_with_railway($license_key) {
-        $api_response = wp_remote_post('https://siteoverlay-api-production.up.railway.app/api/validate-license', array(
+        $api_response = wp_remote_post($this->api_base_url . '/validate-license', array(
             'body' => json_encode(array(
                 'licenseKey' => $license_key,
                 'siteUrl' => get_site_url()
@@ -1321,21 +1139,13 @@ class SiteOverlay_Pro {
      * Used to control feature access and admin display
      */
     public function get_license_status() {
-        error_log('SiteOverlay Debug: get_license_status() called');
-        
         $license_key = get_option('siteoverlay_license_key');
         $license_status = get_option('siteoverlay_license_status');
         $license_expiry = get_option('siteoverlay_license_expiry');
         $license_validated = get_option('siteoverlay_license_validated', false);
         
-        error_log('SiteOverlay Debug: Cached license status: ' . ($license_status ?: 'none'));
-        error_log('SiteOverlay Debug: License key exists: ' . ($license_key ? 'yes' : 'no'));
-        error_log('SiteOverlay Debug: License validated: ' . ($license_validated ? 'yes' : 'no'));
-        error_log('SiteOverlay Debug: License expiry: ' . ($license_expiry ?: 'none'));
-        
         // 1. License State Detection - Required States
         if (!$license_key) {
-            error_log('SiteOverlay Debug: No license key found, returning unlicensed');
             return array(
                 'state' => 'unlicensed',
                 'status' => 'inactive',
@@ -1418,51 +1228,8 @@ class SiteOverlay_Pro {
     public function is_licensed() {
         $license_status = $this->get_license_status();
         
-        error_log('SiteOverlay Debug: is_licensed() called, features_enabled: ' . ($license_status['features_enabled'] ? 'true' : 'false'));
-        
         // ONLY return true if features are explicitly enabled
         return $license_status['features_enabled'] === true;
-    }
-    
-    /**
-     * Debug method to check all license-related options and caches
-     */
-    public function debug_license_status() {
-        error_log('SiteOverlay Debug: === LICENSE STATUS DEBUG ===');
-        
-        // Check all license-related options
-        $license_key = get_option('siteoverlay_license_key');
-        $license_status = get_option('siteoverlay_license_status');
-        $license_expiry = get_option('siteoverlay_license_expiry');
-        $license_validated = get_option('siteoverlay_license_validated');
-        $license_data = get_option('siteoverlay_license_data');
-        $last_error = get_option('siteoverlay_last_error');
-        
-        // Check transients
-        $last_check = get_transient('siteoverlay_license_last_check');
-        
-        error_log('SiteOverlay Debug: License Key: ' . ($license_key ? substr($license_key, 0, 8) . '...' : 'none'));
-        error_log('SiteOverlay Debug: License Status: ' . ($license_status ?: 'none'));
-        error_log('SiteOverlay Debug: License Expiry: ' . ($license_expiry ?: 'none'));
-        error_log('SiteOverlay Debug: License Validated: ' . ($license_validated ?: 'none'));
-        error_log('SiteOverlay Debug: License Data: ' . print_r($license_data, true));
-        error_log('SiteOverlay Debug: Last Error: ' . ($last_error ?: 'none'));
-        error_log('SiteOverlay Debug: Last Check Transient: ' . ($last_check ? date('Y-m-d H:i:s', $last_check) : 'none'));
-        
-        // Get current status
-        $current_status = $this->get_license_status();
-        error_log('SiteOverlay Debug: Current Status: ' . print_r($current_status, true));
-        
-        error_log('SiteOverlay Debug: === END LICENSE STATUS DEBUG ===');
-        
-        return array(
-            'license_key' => $license_key ? 'exists' : 'none',
-            'license_status' => $license_status,
-            'license_expiry' => $license_expiry,
-            'license_validated' => $license_validated,
-            'current_status' => $current_status,
-            'last_check' => $last_check ? date('Y-m-d H:i:s', $last_check) : 'never'
-        );
     }
     
     /**
@@ -1528,84 +1295,6 @@ class SiteOverlay_Pro {
     }
     
     /**
-     * Get dynamic content with fallback
-     */
-    public function get_dynamic_content($key, $fallback = '') {
-        if (isset($this->dynamic_content_manager)) {
-            $content = $this->dynamic_content_manager->get_dynamic_content();
-            
-            // Debug logging for key requests
-            error_log("SiteOverlay: DISPLAY REQUEST - Looking for key '{$key}'");
-            if (isset($content[$key])) {
-                error_log("SiteOverlay: DISPLAY SUCCESS - Found '{$key}' = " . substr($content[$key], 0, 50) . "...");
-                return $content[$key];
-            } else {
-                error_log("SiteOverlay: DISPLAY FALLBACK - Key '{$key}' not found, using fallback: " . substr($fallback, 0, 50) . "...");
-                error_log("SiteOverlay: DISPLAY DEBUG - Available keys: " . implode(', ', array_keys($content)));
-                return $fallback;
-            }
-        }
-        error_log("SiteOverlay: DISPLAY ERROR - Dynamic content manager not available for key '{$key}'");
-        return $fallback;
-    }
-    
-    /**
-     * AJAX handler for refreshing dynamic content
-     */
-    public function ajax_refresh_content() {
-        // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_admin_nonce')) {
-            wp_send_json_error('Invalid nonce');
-        }
-        
-        // Check permissions
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
-        }
-        
-        if (isset($this->dynamic_content_manager)) {
-            // Clear cache and fetch fresh content
-            $this->dynamic_content_manager->clear_cache();
-            $fresh_content = $this->dynamic_content_manager->get_dynamic_content();
-            
-            if ($fresh_content && count($fresh_content) > 0) {
-                wp_send_json_success('Content refreshed successfully. ' . count($fresh_content) . ' items loaded.');
-            } else {
-                wp_send_json_error('Failed to fetch fresh content from API');
-            }
-        } else {
-            wp_send_json_error('Dynamic Content Manager not available');
-        }
-    }
-    
-    /**
-     * AJAX handler for forcing cache
-     */
-    public function ajax_force_cache() {
-        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_admin_nonce')) {
-            wp_send_json_error('Invalid nonce');
-        }
-        
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
-        }
-        
-        if (isset($this->dynamic_content_manager)) {
-            // Clear cache and force refresh
-            $this->dynamic_content_manager->clear_cache();
-            $content = $this->dynamic_content_manager->get_dynamic_content(true);
-            
-            if ($content && is_array($content) && count($content) > 0) {
-                wp_send_json_success('Cache refreshed successfully');
-            } else {
-                wp_send_json_error('Cache refresh failed');
-            }
-        } else {
-            wp_send_json_error('Dynamic Content Manager not available');
-        }
-    }
-    
-    /**
      * Get dynamic upgrade message (always available)
      */
     public function get_dynamic_upgrade_message() {
@@ -1626,23 +1315,13 @@ class SiteOverlay_Pro {
     }
     
     /**
-     * Get dynamic support URL (always available)
+     * Get dynamic content from API (always available)
      */
-    public function get_dynamic_support_url() {
+    public function get_dynamic_content($key, $fallback = '') {
         if (isset($this->dynamic_content_manager)) {
-            return $this->dynamic_content_manager->get_support_url();
+            return $this->dynamic_content_manager->get_dynamic_content($key, $fallback);
         }
-        return 'https://siteoverlay.24hr.pro/support';
-    }
-    
-    /**
-     * Get dynamic training URL (always available)
-     */
-    public function get_dynamic_training_url() {
-        if (isset($this->dynamic_content_manager)) {
-            return $this->dynamic_content_manager->get_training_url();
-        }
-        return 'https://siteoverlay.24hr.pro/training';
+        return $fallback;
     }
     
     /**
