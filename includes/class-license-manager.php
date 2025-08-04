@@ -47,57 +47,113 @@ class SiteOverlay_License_Manager {
      * CONSTITUTIONAL RULE: Never blocks core functionality
      */
     public function background_license_check() {
-        if (empty($this->get_license_key())) {
+        error_log('SiteOverlay Debug: Background license check started');
+        
+        $license_key = $this->get_license_key();
+        if (empty($license_key)) {
+            error_log('SiteOverlay Debug: No license key found, skipping background check');
             return;
         }
         
+        error_log('SiteOverlay Debug: License key found: ' . substr($license_key, 0, 8) . '...');
+        
         // Check if we need to validate (cache for 6 hours)
         $last_check = get_transient('siteoverlay_license_last_check');
+        error_log('SiteOverlay Debug: Last check time: ' . ($last_check ? date('Y-m-d H:i:s', $last_check) : 'never'));
+        
         if ($last_check && (time() - $last_check) < 21600) {
+            error_log('SiteOverlay Debug: License check cached, skipping (6 hour cache)');
             return;
         }
+        
+        error_log('SiteOverlay Debug: Cache expired, running background validation');
         
         // Background validation with short timeout
         $this->validate_license_background();
         set_transient('siteoverlay_license_last_check', time(), 30);
+        error_log('SiteOverlay Debug: Background check completed, cache set');
+    }
+    
+    /**
+     * Clear all license caches and stored data
+     */
+    public function clear_license_caches() {
+        error_log('SiteOverlay Debug: Clearing all license caches');
+        
+        // Clear transients
+        delete_transient('siteoverlay_license_last_check');
+        error_log('SiteOverlay Debug: Cleared transient: siteoverlay_license_last_check');
+        
+        // Clear options
+        delete_option('siteoverlay_license_validated');
+        delete_option('siteoverlay_license_data');
+        error_log('SiteOverlay Debug: Cleared options: license_validated, license_data');
+        
+        // Note: We don't clear the license key itself, just the validation cache
+        error_log('SiteOverlay Debug: License caches cleared successfully');
     }
     
     /**
      * Background license validation (non-blocking)
      */
     private function validate_license_background() {
+        error_log('SiteOverlay Debug: validate_license_background() started');
+        
         $license_key = $this->get_license_key();
         if (empty($license_key)) {
+            error_log('SiteOverlay Debug: No license key for background validation');
             return;
         }
+        
+        error_log('SiteOverlay Debug: Making API call to validate license...');
+        error_log('SiteOverlay Debug: API URL: ' . $this->api_base_url . '/validate-license');
+        
+        $request_data = array(
+            'licenseKey' => $license_key,
+            'siteUrl' => get_site_url(),
+            'action' => 'check',
+            'pluginVersion' => SITEOVERLAY_RR_VERSION
+        );
+        
+        error_log('SiteOverlay Debug: Request data: ' . print_r($request_data, true));
         
         $response = wp_remote_post($this->api_base_url . '/validate-license', array(
             'timeout' => 5,
             'blocking' => false,
             'headers' => array('Content-Type' => 'application/json'),
-            'body' => json_encode(array(
-                'licenseKey' => $license_key,
-                'siteUrl' => get_site_url(),
-                'action' => 'check',
-                'pluginVersion' => SITEOVERLAY_RR_VERSION
-            ))
+            'body' => json_encode($request_data)
         ));
         
-        if (!is_wp_error($response)) {
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
-            
-            if ($data && isset($data['success'])) {
-                if ($data['success']) {
-                    update_option($this->license_data_option, $data['data']);
-                    update_option('siteoverlay_license_validated', current_time('mysql'));
-                } else {
-                    // License invalid - clear it
-                    delete_option($this->license_key_option);
-                    delete_option($this->license_data_option);
-                }
-            }
+        if (is_wp_error($response)) {
+            error_log('SiteOverlay Debug: API call failed with WP_Error: ' . $response->get_error_message());
+            return;
         }
+        
+        error_log('SiteOverlay Debug: API call successful, processing response');
+        
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        
+        error_log('SiteOverlay Debug: API response body: ' . $body);
+        error_log('SiteOverlay Debug: API response data: ' . print_r($data, true));
+        
+        if ($data && isset($data['success'])) {
+            if ($data['success']) {
+                error_log('SiteOverlay Debug: License validation successful, updating options');
+                update_option($this->license_data_option, $data['data']);
+                update_option('siteoverlay_license_validated', current_time('mysql'));
+                error_log('SiteOverlay Debug: License options updated successfully');
+            } else {
+                error_log('SiteOverlay Debug: License validation failed, clearing license');
+                // License invalid - clear it
+                delete_option($this->license_key_option);
+                delete_option($this->license_data_option);
+                error_log('SiteOverlay Debug: License options cleared');
+            }
+        } else {
+            error_log('SiteOverlay Debug: Invalid API response format');
+        }
+    }
     }
     
     public function add_license_page() {
@@ -114,9 +170,14 @@ class SiteOverlay_License_Manager {
      * Enhanced license validation with Railway API
      */
     private function validate_license_with_railway($license_key, $action = 'check') {
+        error_log('SiteOverlay Debug: validate_license_with_railway() called with action: ' . $action);
+        
         if (empty($license_key)) {
+            error_log('SiteOverlay Debug: Empty license key provided');
             return false;
         }
+        
+        error_log('SiteOverlay Debug: License key: ' . substr($license_key, 0, 8) . '...');
         
         $site_data = array(
             'licenseKey' => $license_key,
@@ -128,6 +189,9 @@ class SiteOverlay_License_Manager {
             'clientIP' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             'userAgent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
         );
+        
+        error_log('SiteOverlay Debug: Site data for validation: ' . print_r($site_data, true));
+        error_log('SiteOverlay Debug: Making API call to: ' . $this->api_base_url . '/validate-license');
         
         $response = wp_remote_post($this->api_base_url . '/validate-license', array(
             'timeout' => $this->api_timeout,
@@ -141,18 +205,25 @@ class SiteOverlay_License_Manager {
             $error_msg = 'Connection Error: ' . $response->get_error_message();
             update_option('siteoverlay_last_error', $error_msg);
             error_log('SiteOverlay License Error: ' . $error_msg);
+            error_log('SiteOverlay Debug: API call failed with WP_Error');
             return false;
         }
         
         $response_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
         
+        error_log('SiteOverlay Debug: API response code: ' . $response_code);
+        error_log('SiteOverlay Debug: API response body: ' . $body);
+        
         if ($response_code !== 200) {
-            update_option('siteoverlay_last_error', 'Server Error: HTTP ' . $response_code);
+            $error_msg = 'Server Error: HTTP ' . $response_code;
+            update_option('siteoverlay_last_error', $error_msg);
+            error_log('SiteOverlay Debug: API returned non-200 status code');
             return false;
         }
         
         $data = json_decode($body, true);
+        error_log('SiteOverlay Debug: Decoded response data: ' . print_r($data, true));
         
         if ($data && isset($data['success']) && $data['success']) {
             // Store enhanced license data

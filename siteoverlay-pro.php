@@ -1164,13 +1164,21 @@ class SiteOverlay_Pro {
      * Used to control feature access and admin display
      */
     public function get_license_status() {
+        error_log('SiteOverlay Debug: get_license_status() called');
+        
         $license_key = get_option('siteoverlay_license_key');
         $license_status = get_option('siteoverlay_license_status');
         $license_expiry = get_option('siteoverlay_license_expiry');
         $license_validated = get_option('siteoverlay_license_validated', false);
         
+        error_log('SiteOverlay Debug: Cached license status: ' . ($license_status ?: 'none'));
+        error_log('SiteOverlay Debug: License key exists: ' . ($license_key ? 'yes' : 'no'));
+        error_log('SiteOverlay Debug: License validated: ' . ($license_validated ? 'yes' : 'no'));
+        error_log('SiteOverlay Debug: License expiry: ' . ($license_expiry ?: 'none'));
+        
         // 1. License State Detection - Required States
         if (!$license_key) {
+            error_log('SiteOverlay Debug: No license key found, returning unlicensed');
             return array(
                 'state' => 'unlicensed',
                 'status' => 'inactive',
@@ -1253,8 +1261,51 @@ class SiteOverlay_Pro {
     public function is_licensed() {
         $license_status = $this->get_license_status();
         
+        error_log('SiteOverlay Debug: is_licensed() called, features_enabled: ' . ($license_status['features_enabled'] ? 'true' : 'false'));
+        
         // ONLY return true if features are explicitly enabled
         return $license_status['features_enabled'] === true;
+    }
+    
+    /**
+     * Debug method to check all license-related options and caches
+     */
+    public function debug_license_status() {
+        error_log('SiteOverlay Debug: === LICENSE STATUS DEBUG ===');
+        
+        // Check all license-related options
+        $license_key = get_option('siteoverlay_license_key');
+        $license_status = get_option('siteoverlay_license_status');
+        $license_expiry = get_option('siteoverlay_license_expiry');
+        $license_validated = get_option('siteoverlay_license_validated');
+        $license_data = get_option('siteoverlay_license_data');
+        $last_error = get_option('siteoverlay_last_error');
+        
+        // Check transients
+        $last_check = get_transient('siteoverlay_license_last_check');
+        
+        error_log('SiteOverlay Debug: License Key: ' . ($license_key ? substr($license_key, 0, 8) . '...' : 'none'));
+        error_log('SiteOverlay Debug: License Status: ' . ($license_status ?: 'none'));
+        error_log('SiteOverlay Debug: License Expiry: ' . ($license_expiry ?: 'none'));
+        error_log('SiteOverlay Debug: License Validated: ' . ($license_validated ?: 'none'));
+        error_log('SiteOverlay Debug: License Data: ' . print_r($license_data, true));
+        error_log('SiteOverlay Debug: Last Error: ' . ($last_error ?: 'none'));
+        error_log('SiteOverlay Debug: Last Check Transient: ' . ($last_check ? date('Y-m-d H:i:s', $last_check) : 'none'));
+        
+        // Get current status
+        $current_status = $this->get_license_status();
+        error_log('SiteOverlay Debug: Current Status: ' . print_r($current_status, true));
+        
+        error_log('SiteOverlay Debug: === END LICENSE STATUS DEBUG ===');
+        
+        return array(
+            'license_key' => $license_key ? 'exists' : 'none',
+            'license_status' => $license_status,
+            'license_expiry' => $license_expiry,
+            'license_validated' => $license_validated,
+            'current_status' => $current_status,
+            'last_check' => $last_check ? date('Y-m-d H:i:s', $last_check) : 'never'
+        );
     }
     
     /**
