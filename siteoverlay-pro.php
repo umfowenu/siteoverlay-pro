@@ -269,9 +269,9 @@ class SiteOverlay_Pro {
                 </div>
                 
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px;">
-                    <h3 style="margin: 0 0 10px 0; color: #856404;">🚀 Get Xagio</h3>
-                    <p style="margin: 0; color: #856404;">Boost your SEO rankings</p>
-                    <a href="https://xagio.net/?ref=siteoverlay" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Xagio Now</a>
+                    <h3 style="margin: 0 0 10px 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></h3>
+                    <p style="margin: 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></p>
+                    <a href="<?php echo esc_url($this->get_dynamic_content('metabox_affiliate_url', 'https://xagio.net/?ref=siteoverlay')); ?>" target="_blank" class="button button-primary" style="margin-top: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
                 </div>
             </div>
             
@@ -843,10 +843,10 @@ class SiteOverlay_Pro {
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
-                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
-                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
-                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
-                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
+                <a href="<?php echo esc_url($this->get_dynamic_content('metabox_affiliate_url', 'https://xagio.net/?ref=siteoverlay')); ?>" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
                 <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
             </div>
             
@@ -879,10 +879,10 @@ class SiteOverlay_Pro {
             
             <!-- Xagio Affiliate Section -->
             <div style="background: #d1ecf1; padding: 15px; text-align: center; margin: 0;">
-                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;">🚀 Boost Your SEO Rankings</div>
-                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;">Get Xagio - The #1 SEO Tool for Rank & Rent Success</div>
-                <a href="https://xagio.net/?ref=siteoverlay" target="_blank" 
-                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;">Get Xagio Now</a>
+                <div style="color: #0c5460; font-weight: bold; margin-bottom: 5px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_title', '🚀 Boost Your SEO Rankings')); ?></div>
+                <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
+                <a href="<?php echo esc_url($this->get_dynamic_content('metabox_affiliate_url', 'https://xagio.net/?ref=siteoverlay')); ?>" target="_blank" 
+                   style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
                 <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
             </div>
             
