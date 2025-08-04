@@ -77,12 +77,15 @@ class SiteOverlay_Pro {
             $this->dynamic_content_manager = new SiteOverlay_Dynamic_Content_Manager();
         }
         
+        // TEMPORARILY COMMENT OUT LICENSE MANAGER - FILE MISSING
+        /*
         // Load license manager (always available - constitutional rule)
         $license_manager_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-license-manager.php';
         if (file_exists($license_manager_file)) {
             require_once $license_manager_file;
             $this->license_manager = new SiteOverlay_License_Manager();
         }
+        */
     }
     
     /**
@@ -130,6 +133,8 @@ class SiteOverlay_Pro {
         // Get license status
         $license_status = $this->get_license_status();
         
+        // TEMPORARILY COMMENT OUT DEBUG ACTIONS - LICENSE MANAGER MISSING
+        /*
         // Handle debug actions - SAFE VERSION
         if (current_user_can('manage_options')) {
             if (isset($_GET['clear_cache']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
@@ -154,6 +159,7 @@ class SiteOverlay_Pro {
                 echo '<div class="notice notice-info"><p>🔍 Debug information refreshed!</p></div>';
             }
         }
+        */
         
         // Count posts with overlays
         $posts_with_overlays = $wpdb->get_var(
@@ -462,11 +468,14 @@ class SiteOverlay_Pro {
                 <h3>🔍 License Debug Information</h3>
                 
                 <?php
+                // TEMPORARILY COMMENT OUT - LICENSE MANAGER MISSING
                 // Get debug information
-                $debug_info = $this->debug_license_status();
-                $license_manager = $this->license_manager;
+                // $debug_info = $this->debug_license_status();
+                // $license_manager = $this->license_manager;
                 ?>
                 
+                <!-- TEMPORARILY COMMENTED OUT - LICENSE MANAGER MISSING -->
+                <!--
                 <div style="margin: 15px 0;">
                     <h4>Current License Status:</h4>
                     <table style="border-collapse: collapse; width: 100%;">
@@ -507,6 +516,12 @@ class SiteOverlay_Pro {
                         <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-settings&run_background_check=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🔄 Run Background Check</a>
                         <a href="<?php echo admin_url('admin.php?page=siteoverlay-settings&debug_refresh=1'); ?>" class="button button-primary">🔍 Refresh Debug Info</a>
                     </p>
+                </div>
+                -->
+                
+                <div style="margin: 15px 0;">
+                    <h4>⚠️ License Debug Temporarily Disabled</h4>
+                    <p style="color: #856404;">License manager class file is missing. Debug functionality will be restored once the license manager is properly implemented.</p>
                 </div>
             </div>
             
