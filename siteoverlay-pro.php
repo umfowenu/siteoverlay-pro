@@ -33,12 +33,22 @@ class SiteOverlay_Pro {
     
     private $api_base_url = 'https://siteoverlay-api-production.up.railway.app/api';
     
+    // License enforcement properties
+    private $license_manager;
+    private $is_licensed = null;
+    
     /**
      * Constructor - sets up WordPress hooks and plugin integration
      */
     public function __construct() {
         // Basic initialization
         add_action('init', array($this, 'init'));
+        
+        // License manager initialization (non-blocking)
+        add_action('plugins_loaded', array($this, 'init_license_manager'), 5);
+        
+        // Background license check (non-blocking)
+        add_action('wp_loaded', array($this, 'background_license_check'), 20);
         
         // Admin functionality
         if (is_admin()) {
@@ -49,10 +59,10 @@ class SiteOverlay_Pro {
             add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
             add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
             
-                    // AJAX handlers for overlay functionality - ALWAYS available (constitutional rule)
-        add_action('wp_ajax_siteoverlay_save_url', array($this, 'ajax_save_overlay'));
-        add_action('wp_ajax_siteoverlay_remove_url', array($this, 'ajax_remove_overlay'));
-        add_action('wp_ajax_siteoverlay_preview_url', array($this, 'ajax_preview_overlay'));
+            // AJAX handlers for overlay functionality - ALWAYS available (constitutional rule)
+            add_action('wp_ajax_siteoverlay_save_url', array($this, 'ajax_save_overlay'));
+            add_action('wp_ajax_siteoverlay_remove_url', array($this, 'ajax_remove_overlay'));
+            add_action('wp_ajax_siteoverlay_preview_url', array($this, 'ajax_preview_overlay'));
             
             // License management AJAX handlers (always available)
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
@@ -83,6 +93,54 @@ class SiteOverlay_Pro {
     public function init() {
         // Load textdomain
         load_plugin_textdomain('siteoverlay-rr', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    }
+    
+    /**
+     * Initialize license manager (non-blocking)
+     */
+    public function init_license_manager() {
+        $license_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-license-manager.php';
+        if (file_exists($license_file)) {
+            require_once $license_file;
+            $this->license_manager = new SiteOverlay_License_Manager();
+        }
+    }
+    
+    /**
+     * Background license check (non-blocking)
+     */
+    public function background_license_check() {
+        if (isset($this->license_manager) && method_exists($this->license_manager, 'background_license_check')) {
+            $this->license_manager->background_license_check();
+        }
+    }
+    
+    /**
+     * Check if plugin is licensed (cached)
+     */
+    public function is_licensed() {
+        if ($this->is_licensed === null) {
+            if (isset($this->license_manager) && method_exists($this->license_manager, 'is_licensed')) {
+                $this->is_licensed = $this->license_manager->is_licensed();
+            } else {
+                // Fallback to basic license check
+                $license_key = get_option('siteoverlay_license_key', '');
+                $license_status = get_option('siteoverlay_license_status', 'inactive');
+                $this->is_licensed = !empty($license_key) && $license_status === 'active';
+            }
+        }
+        return $this->is_licensed;
+    }
+    
+    /**
+     * Display license notice (non-blocking)
+     */
+    public function license_notice() {
+        if (!$this->is_licensed()) {
+            echo '<div class="notice notice-warning is-dismissible">';
+            echo '<p><strong>SiteOverlay Pro:</strong> Plugin is inactive. Activate your license to use SiteOverlay Pro. <a href="' . admin_url('options-general.php?page=siteoverlay-settings'); . '">Activate Now</a></p>';
+            echo '</div>';
+        }
     }
     
     /**
@@ -842,6 +900,11 @@ class SiteOverlay_Pro {
      * Enqueue admin scripts and styles for overlay management
      */
     public function admin_enqueue_scripts($hook) {
+        // License enforcement - block admin scripts if not licensed
+        if (!$this->is_licensed()) {
+            return;
+        }
+        
         // Only load on post/page edit screens
         if (!in_array($hook, array('post.php', 'post-new.php', 'page.php', 'page-new.php'))) {
             return;
@@ -862,6 +925,12 @@ class SiteOverlay_Pro {
      * Validates user input and updates post meta
      */
     public function ajax_save_overlay() {
+        // License enforcement - block functionality if not licensed
+        if (!$this->is_licensed()) {
+            wp_send_json_error('Plugin is not licensed. Please activate your license to use this feature.');
+            return;
+        }
+        
         // Verify nonce for security
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
             wp_send_json_error('Security check failed');
@@ -903,6 +972,12 @@ class SiteOverlay_Pro {
      * Removes overlay data from post meta
      */
     public function ajax_remove_overlay() {
+        // License enforcement - block functionality if not licensed
+        if (!$this->is_licensed()) {
+            wp_send_json_error('Plugin is not licensed. Please activate your license to use this feature.');
+            return;
+        }
+        
         // Verify nonce for security
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
             wp_send_json_error('Security check failed');
@@ -937,6 +1012,12 @@ class SiteOverlay_Pro {
      * Returns overlay URL for preview in admin
      */
     public function ajax_preview_overlay() {
+        // License enforcement - block functionality if not licensed
+        if (!$this->is_licensed()) {
+            wp_send_json_error('Plugin is not licensed. Please activate your license to use this feature.');
+            return;
+        }
+        
         if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
             wp_send_json_error('Security check failed');
             return;
@@ -1221,16 +1302,7 @@ class SiteOverlay_Pro {
         );
     }
     
-    /**
-     * Check if plugin features should be enabled
-     * Used to control overlay display and admin options
-     */
-    public function is_licensed() {
-        $license_status = $this->get_license_status();
-        
-        // ONLY return true if features are explicitly enabled
-        return $license_status['features_enabled'] === true;
-    }
+
     
     /**
      * Check if trial license is currently active
@@ -1350,6 +1422,11 @@ class SiteOverlay_Pro {
      * Provides fast overlay loading for rank & rent websites
      */
     public function display_overlay() {
+        // License enforcement - block overlay display if not licensed
+        if (!$this->is_licensed()) {
+            return;
+        }
+        
         // Only run on frontend single posts/pages, not during activation
         if (is_admin() || !is_singular()) return;
         
