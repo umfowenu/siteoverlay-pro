@@ -1439,21 +1439,15 @@ class SiteOverlay_Pro {
      * Get dynamic content from API (always available)
      */
     public function get_dynamic_content($key, $fallback = '') {
-        try {
-            error_log('get_dynamic_content called with key: ' . $key);
-            if (isset($this->dynamic_content_manager)) {
-                error_log('Dynamic content manager is available');
-                $result = $this->dynamic_content_manager->get_dynamic_content($key, $fallback);
-                error_log('Dynamic content result for ' . $key . ': ' . $result);
-                return $result;
-            } else {
-                error_log('Dynamic content manager is not available, returning fallback: ' . $fallback);
-                return $fallback;
+        if (isset($this->dynamic_content_manager)) {
+            $content = $this->dynamic_content_manager->get_dynamic_content();
+            
+            // Check if the key exists in the content array
+            if (is_array($content) && isset($content[$key])) {
+                return $content[$key];  // Return JUST the value for this key
             }
-        } catch (Exception $e) {
-            error_log('Exception in get_dynamic_content for key ' . $key . ': ' . $e->getMessage());
-            return $fallback;
         }
+        return $fallback;  // Return fallback if key not found
     }
     
     /**
