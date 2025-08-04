@@ -76,6 +76,13 @@ class SiteOverlay_Pro {
             require_once $dynamic_content_file;
             $this->dynamic_content_manager = new SiteOverlay_Dynamic_Content_Manager();
         }
+        
+        // Load license manager (always available - constitutional rule)
+        $license_manager_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-license-manager.php';
+        if (file_exists($license_manager_file)) {
+            require_once $license_manager_file;
+            $this->license_manager = new SiteOverlay_License_Manager();
+        }
     }
     
     /**
@@ -123,16 +130,24 @@ class SiteOverlay_Pro {
         // Get license status
         $license_status = $this->get_license_status();
         
-        // Handle debug actions - ADD PERMISSION CHECK
+        // Handle debug actions - SAFE VERSION
         if (current_user_can('manage_options')) {
             if (isset($_GET['clear_cache']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
-                $this->license_manager->clear_license_caches();
-                echo '<div class="notice notice-success"><p>✅ License caches cleared!</p></div>';
+                if (isset($this->license_manager) && method_exists($this->license_manager, 'clear_license_caches')) {
+                    $this->license_manager->clear_license_caches();
+                    echo '<div class="notice notice-success"><p>✅ License caches cleared!</p></div>';
+                } else {
+                    echo '<div class="notice notice-error"><p>❌ Clear cache method not found!</p></div>';
+                }
             }
 
             if (isset($_GET['run_background_check']) && wp_verify_nonce($_GET['_wpnonce'], 'siteoverlay_debug')) {
-                $this->license_manager->background_license_check();
-                echo '<div class="notice notice-info"><p>🔄 Background license check triggered!</p></div>';
+                if (isset($this->license_manager) && method_exists($this->license_manager, 'background_license_check')) {
+                    $this->license_manager->background_license_check();
+                    echo '<div class="notice notice-info"><p>🔄 Background license check triggered!</p></div>';
+                } else {
+                    echo '<div class="notice notice-error"><p>❌ Background check method not found!</p></div>';
+                }
             }
 
             if (isset($_GET['debug_refresh'])) {
