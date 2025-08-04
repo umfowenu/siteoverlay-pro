@@ -1235,7 +1235,7 @@ class SiteOverlay_Pro {
      * CRITICAL FIX: Validate license with Railway API
      */
     private function validate_license_with_railway($license_key) {
-        $api_response = wp_remote_post($this->api_base_url . '/validate-license', array(
+        $api_response = wp_remote_post('https://siteoverlay-api-production.up.railway.app/api/validate-license', array(
             'body' => json_encode(array(
                 'licenseKey' => $license_key,
                 'siteUrl' => get_site_url()
@@ -1280,6 +1280,13 @@ class SiteOverlay_Pro {
                 'status' => $status,
                 'expiry' => $expiry
             );
+        } else {
+            return array(
+                'success' => false,
+                'message' => $data['message'] ?? 'Invalid license key'
+            );
+        }
+
         } else {
             return array(
                 'success' => false,
