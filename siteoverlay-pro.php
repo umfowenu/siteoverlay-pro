@@ -161,7 +161,7 @@ class SiteOverlay_Pro {
             
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
-                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
+                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
             </div>
             
             <!-- Status Cards -->
@@ -188,6 +188,26 @@ class SiteOverlay_Pro {
                     <p style="margin: 0; color: #856404;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Boost your SEO rankings')); ?></p>
                     <a href="<?php echo esc_url($this->get_dynamic_xagio_affiliate_url()); ?>" target="_blank" class="button button-primary" style="margin-top: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
                 </div>
+            </div>
+            
+            <?php
+            // Download and Documentation Links
+            $plugin_download_url = $this->get_dynamic_content('plugin_download_url', '#');
+            $installation_video_url = $this->get_dynamic_content('installation_video_url', '#');
+            $installation_guide_pdf_url = $this->get_dynamic_content('installation_guide_pdf_url', '#');
+            ?>
+            
+            <!-- Download & Documentation Section -->
+            <div class="siteoverlay-section" style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
+                <h3>📥 Downloads & Documentation</h3>
+                <div class="download-links">
+                    <p><strong>Plugin Download:</strong> <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">Download Latest Version</a></p>
+                    <p><strong>Installation Video:</strong> <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">Watch Tutorial</a></p>
+                    <p><strong>Installation Guide:</strong> <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">Download PDF Guide</a></p>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
             </div>
             
             <?php
@@ -708,7 +728,7 @@ class SiteOverlay_Pro {
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
-                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
             </div>
             
             <!-- Disabled State Message -->
@@ -768,7 +788,7 @@ class SiteOverlay_Pro {
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
-                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
             </div>
             
             <!-- Status Display -->
