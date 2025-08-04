@@ -488,9 +488,9 @@ class SiteOverlay_Pro {
                 <div style="margin: 15px 0;">
                     <h4>Debug Actions:</h4>
                     <p>
-                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-license&clear_cache=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🗑️ Clear License Caches</a>
-                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-license&run_background_check=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🔄 Run Background Check</a>
-                        <a href="<?php echo admin_url('admin.php?page=siteoverlay-license&debug_refresh=1'); ?>" class="button button-primary">🔍 Refresh Debug Info</a>
+                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-settings&clear_cache=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🗑️ Clear License Caches</a>
+                        <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=siteoverlay-settings&run_background_check=1'), 'siteoverlay_debug'); ?>" class="button button-secondary">🔄 Run Background Check</a>
+                        <a href="<?php echo admin_url('admin.php?page=siteoverlay-settings&debug_refresh=1'); ?>" class="button button-primary">🔍 Refresh Debug Info</a>
                     </p>
                 </div>
             </div>
