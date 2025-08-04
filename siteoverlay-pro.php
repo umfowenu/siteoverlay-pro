@@ -179,6 +179,24 @@ class SiteOverlay_Pro {
             // REMOVED THE AUTO-REFRESH SCRIPT
         }
         
+        // TEMPORARY: Manual license clearing - add this near the top of render_admin_page()
+        if (isset($_GET['force_clear_license'])) {
+            // Clear ALL license-related options
+            delete_option('siteoverlay_license_key');
+            delete_option('siteoverlay_license_status'); 
+            delete_option('siteoverlay_license_expiry');
+            delete_option('siteoverlay_license_validated');
+            delete_option('siteoverlay_license_data');
+            delete_option('siteoverlay_registration_email');
+            delete_option('siteoverlay_registration_name');
+            
+            // Clear transients
+            delete_transient('siteoverlay_license_last_check');
+            delete_transient('siteoverlay_license_cache');
+            
+            echo '<div class="notice notice-success"><p>✅ All license data forcefully cleared!</p></div>';
+        }
+        
         // Count posts with overlays
         $posts_with_overlays = $wpdb->get_var(
             $wpdb->prepare(
@@ -550,6 +568,16 @@ class SiteOverlay_Pro {
                        class="button button-secondary" 
                        onclick="return confirm('This will clear all license data. Continue?')">
                        🗑️ Manual Clear All License Data
+                    </a>
+                </div>
+                
+                <!-- Force Clear Button -->
+                <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin: 20px 0;">
+                    <h4>🚨 Force Clear License Data</h4>
+                    <a href="?page=siteoverlay-settings&force_clear_license=1" 
+                       class="button button-secondary" 
+                       onclick="return confirm('This will completely clear all license data. Continue?')">
+                       🗑️ Force Clear All License Data
                     </a>
                 </div>
             </div>
