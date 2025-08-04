@@ -44,12 +44,6 @@ class SiteOverlay_Pro {
         // Basic initialization
         add_action('init', array($this, 'init'));
         
-        // License manager initialization (non-blocking)
-        add_action('plugins_loaded', array($this, 'init_license_manager'), 5);
-        
-        // Background license check (non-blocking)
-        add_action('wp_loaded', array($this, 'background_license_check'), 20);
-        
         // Admin functionality
         if (is_admin()) {
             add_action('admin_init', array($this, 'admin_init'));
@@ -95,38 +89,21 @@ class SiteOverlay_Pro {
         load_plugin_textdomain('siteoverlay-rr', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
     
-    /**
-     * Initialize license manager (non-blocking)
-     */
-    public function init_license_manager() {
-        $license_file = SITEOVERLAY_RR_PLUGIN_PATH . 'includes/class-license-manager.php';
-        if (file_exists($license_file)) {
-            require_once $license_file;
-            $this->license_manager = new SiteOverlay_License_Manager();
-        }
-    }
+
     
     /**
-     * Background license check (non-blocking)
+     * Check if plugin is licensed (simple direct check)
      */
-    public function background_license_check() {
-        if (isset($this->license_manager) && method_exists($this->license_manager, 'background_license_check')) {
-            $this->license_manager->background_license_check();
-        }
-    }
-    
-    /**
-     * Check if plugin is licensed (cached)
-     */
-    public function is_licensed() {
+    private function is_licensed() {
         if ($this->is_licensed === null) {
-            if (isset($this->license_manager) && method_exists($this->license_manager, 'is_licensed')) {
-                $this->is_licensed = $this->license_manager->is_licensed();
+            $license_key = get_option('siteoverlay_license_key');
+            $license_validated = get_option('siteoverlay_license_validated', false);
+            
+            // Simple check: if no license key or not validated, not licensed
+            if (!$license_key || !$license_validated) {
+                $this->is_licensed = false;
             } else {
-                // Fallback to basic license check
-                $license_key = get_option('siteoverlay_license_key', '');
-                $license_status = get_option('siteoverlay_license_status', 'inactive');
-                $this->is_licensed = !empty($license_key) && $license_status === 'active';
+                $this->is_licensed = true;
             }
         }
         return $this->is_licensed;
