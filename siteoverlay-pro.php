@@ -198,12 +198,18 @@ class SiteOverlay_Pro {
             ?>
             
             <!-- Download & Documentation Section -->
-            <div class="siteoverlay-section" style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
+            <div style="background: white; padding: 20px; margin: 20px 0; border: 1px solid #ddd;">
                 <h3>📥 Downloads & Documentation</h3>
-                <div class="download-links">
-                    <p><strong>Plugin Download:</strong> <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">Download Latest Version</a></p>
-                    <p><strong>Installation Video:</strong> <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">Watch Tutorial</a></p>
-                    <p><strong>Installation Guide:</strong> <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">Download PDF Guide</a></p>
+                <div style="margin: 15px 0;">
+                    <p><strong>Plugin Download:</strong> 
+                       <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">📦 Download Latest Version</a>
+                    </p>
+                    <p><strong>Installation Video:</strong> 
+                       <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">🎥 Watch Tutorial</a>
+                    </p>
+                    <p><strong>Installation Guide:</strong> 
+                       <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">📄 Download PDF Guide</a>
+                    </p>
                 </div>
             </div>
             
