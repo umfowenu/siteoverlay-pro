@@ -161,6 +161,24 @@ class SiteOverlay_Pro {
         }
         */
         
+        // TEMPORARY: Manual license cache clearing - FIXED VERSION
+        if (isset($_GET['manual_clear_license'])) {
+            // Clear all license-related WordPress options
+            delete_option('siteoverlay_license_key');
+            delete_option('siteoverlay_license_status'); 
+            delete_option('siteoverlay_license_expiry');
+            delete_option('siteoverlay_license_validated');
+            delete_option('siteoverlay_license_data');
+            delete_option('siteoverlay_license_email');
+            
+            // Clear transients
+            delete_transient('siteoverlay_license_last_check');
+            delete_transient('siteoverlay_license_cache');
+            
+            echo '<div class="notice notice-success"><p>✅ All license data manually cleared! <a href="' . remove_query_arg('manual_clear_license') . '">Refresh page to see results</a></p></div>';
+            // REMOVED THE AUTO-REFRESH SCRIPT
+        }
+        
         // Count posts with overlays
         $posts_with_overlays = $wpdb->get_var(
             $wpdb->prepare(
@@ -522,6 +540,17 @@ class SiteOverlay_Pro {
                 <div style="margin: 15px 0;">
                     <h4>⚠️ License Debug Temporarily Disabled</h4>
                     <p style="color: #856404;">License manager class file is missing. Debug functionality will be restored once the license manager is properly implemented.</p>
+                </div>
+                
+                <!-- Temporary Manual Clear Button -->
+                <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin: 20px 0;">
+                    <h4>🚨 Temporary License Reset</h4>
+                    <p>Since debug functions are disabled, use this manual reset:</p>
+                    <a href="?page=siteoverlay-settings&manual_clear_license=1" 
+                       class="button button-secondary" 
+                       onclick="return confirm('This will clear all license data. Continue?')">
+                       🗑️ Manual Clear All License Data
+                    </a>
                 </div>
             </div>
             
