@@ -192,6 +192,54 @@ class SiteOverlay_Pro {
         <div class="wrap">
             <h1>SiteOverlay Pro Settings</h1>
             
+            <!-- DEBUG SECTION - Shows in WordPress admin -->
+            <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin: 20px 0;">
+                <h3>🔍 Debug Information</h3>
+                
+                <?php
+                // Debug License Status
+                echo '<h4>License Debug:</h4>';
+                echo '<p><strong>License Key:</strong> ' . (get_option('siteoverlay_license_key') ?: 'None') . '</p>';
+                echo '<p><strong>License Validated:</strong> ' . (get_option('siteoverlay_license_validated', false) ? 'Yes' : 'No') . '</p>';
+                echo '<p><strong>is_licensed() result:</strong> ' . ($this->is_licensed() ? 'TRUE' : 'FALSE') . '</p>';
+                
+                // Debug Dynamic Content Manager
+                echo '<h4>Dynamic Content Debug:</h4>';
+                if (isset($this->dynamic_content_manager)) {
+                    echo '<p><strong>Dynamic Content Manager:</strong> ✅ Loaded</p>';
+                    
+                    // Test each dynamic content call
+                    $test_calls = array(
+                        'plugin_download_url',
+                        'installation_video_url', 
+                        'installation_guide_pdf_url'
+                    );
+                    
+                    foreach ($test_calls as $key) {
+                        try {
+                            $value = $this->get_dynamic_content($key, 'FALLBACK');
+                            echo '<p><strong>' . $key . ':</strong> ' . esc_html(print_r($value, true)) . '</p>';
+                        } catch (Exception $e) {
+                            echo '<p><strong>' . $key . ':</strong> ❌ ERROR: ' . esc_html($e->getMessage()) . '</p>';
+                        } catch (Error $e) {
+                            echo '<p><strong>' . $key . ':</strong> ❌ FATAL: ' . esc_html($e->getMessage()) . '</p>';
+                        }
+                    }
+                } else {
+                    echo '<p><strong>Dynamic Content Manager:</strong> ❌ NOT LOADED</p>';
+                }
+                
+                // Debug get_dynamic_content method
+                echo '<h4>Method Debug:</h4>';
+                echo '<p><strong>get_dynamic_content method exists:</strong> ' . (method_exists($this, 'get_dynamic_content') ? 'Yes' : 'No') . '</p>';
+                
+                if (isset($this->dynamic_content_manager)) {
+                    echo '<p><strong>Dynamic Content Manager class:</strong> ' . get_class($this->dynamic_content_manager) . '</p>';
+                    echo '<p><strong>Dynamic Content Manager methods:</strong> ' . implode(', ', get_class_methods($this->dynamic_content_manager)) . '</p>';
+                }
+                ?>
+            </div>
+            
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
                 <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
@@ -199,14 +247,18 @@ class SiteOverlay_Pro {
             
             <!-- Status Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <!-- Plugin always active (constitutional rule) -->
+                <!-- License-aware status display -->
+                <?php if ($this->is_licensed()): ?>
                 <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px;">
-                    <h3 style="margin: 0 0 10px 0; color: #155724;">✓ Plugin Active</h3>
+                    <h3 style="margin: 0 0 10px 0; color: #155724;">✅ Plugin Licensed & Active</h3>
                     <p style="margin: 0; color: #155724;">SiteOverlay Pro is running successfully</p>
-                    <?php if (!$license_status['features_enabled']): ?>
-                    <p style="margin: 5px 0 0 0; color: #856404; font-size: 12px;">💡 Activate license for premium features</p>
-                    <?php endif; ?>
                 </div>
+                <?php else: ?>
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px;">
+                    <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ Plugin Unlicensed</h3>
+                    <p style="margin: 0; color: #856404;">Activate your license to enable all features</p>
+                </div>
+                <?php endif; ?>
                 
                 <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 5px;">
                     <h3 style="margin: 0 0 10px 0; color: #0c5460;">📊 Usage Statistics</h3>
@@ -224,10 +276,30 @@ class SiteOverlay_Pro {
             </div>
             
             <?php
-            // Download and Documentation Links
-            $plugin_download_url = $this->get_dynamic_content('plugin_download_url', '#');
-            $installation_video_url = $this->get_dynamic_content('installation_video_url', '#');
-            $installation_guide_pdf_url = $this->get_dynamic_content('installation_guide_pdf_url', '#');
+            // Debug the dynamic content calls with error handling
+            try {
+                $plugin_download_url = $this->get_dynamic_content('plugin_download_url', '#');
+                error_log('Plugin download URL retrieved: ' . $plugin_download_url);
+            } catch (Exception $e) {
+                error_log('Dynamic content error (plugin_download_url): ' . $e->getMessage());
+                $plugin_download_url = '#';
+            }
+            
+            try {
+                $installation_video_url = $this->get_dynamic_content('installation_video_url', '#');
+                error_log('Installation video URL retrieved: ' . $installation_video_url);
+            } catch (Exception $e) {
+                error_log('Dynamic content error (installation_video_url): ' . $e->getMessage());
+                $installation_video_url = '#';
+            }
+            
+            try {
+                $installation_guide_pdf_url = $this->get_dynamic_content('installation_guide_pdf_url', '#');
+                error_log('Installation guide PDF URL retrieved: ' . $installation_guide_pdf_url);
+            } catch (Exception $e) {
+                error_log('Dynamic content error (installation_guide_pdf_url): ' . $e->getMessage());
+                $installation_guide_pdf_url = '#';
+            }
             ?>
             
             <!-- Downloads & Documentation Section -->
@@ -1367,10 +1439,21 @@ class SiteOverlay_Pro {
      * Get dynamic content from API (always available)
      */
     public function get_dynamic_content($key, $fallback = '') {
-        if (isset($this->dynamic_content_manager)) {
-            return $this->dynamic_content_manager->get_dynamic_content($key, $fallback);
+        try {
+            error_log('get_dynamic_content called with key: ' . $key);
+            if (isset($this->dynamic_content_manager)) {
+                error_log('Dynamic content manager is available');
+                $result = $this->dynamic_content_manager->get_dynamic_content($key, $fallback);
+                error_log('Dynamic content result for ' . $key . ': ' . $result);
+                return $result;
+            } else {
+                error_log('Dynamic content manager is not available, returning fallback: ' . $fallback);
+                return $fallback;
+            }
+        } catch (Exception $e) {
+            error_log('Exception in get_dynamic_content for key ' . $key . ': ' . $e->getMessage());
+            return $fallback;
         }
-        return $fallback;
     }
     
     /**
