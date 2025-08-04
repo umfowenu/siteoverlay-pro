@@ -790,8 +790,23 @@ class SiteOverlay_Pro {
     public function render_meta_box($post) {
         wp_nonce_field('siteoverlay_overlay_nonce', 'siteoverlay_overlay_nonce');
         
-        // CONSTITUTIONAL RULE: Always show full functionality
-        // License status only affects messaging, never functionality
+        // LICENSE ENFORCEMENT: Block meta box when unlicensed
+        if (!$this->is_licensed()) {
+            ?>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center;">
+                <h4 style="margin: 0 0 10px 0; color: #856404;">🔒 License Required</h4>
+                <p style="margin: 10px 0; color: #856404;">SiteOverlay Pro requires a valid license to function.</p>
+                <p style="margin: 15px 0;">
+                    <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>" class="button button-primary">
+                        🔑 Activate License
+                    </a>
+                </p>
+            </div>
+            <?php
+            return; // Stop here - don't show overlay form
+        }
+        
+        // Continue with existing meta box code for licensed users...
         $this->render_licensed_meta_box($post);
     }
     
