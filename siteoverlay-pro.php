@@ -1816,40 +1816,13 @@ class SiteOverlay_Pro {
             return;
         }
         
-        $license_status = $this->get_license_status();
-        
-        switch ($license_status['state']) {
-            case 'unlicensed':
-                ?>
-                <div class="notice notice-warning is-dismissible">
-                    <p><strong>SiteOverlay Pro:</strong> Plugin is inactive. Activate your license to use SiteOverlay Pro. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Activate Now</a></p>
-                </div>
-                <?php
-                break;
-                
-            case 'trial_active':
-                if ($license_status['days_remaining'] <= 7) {
-                    ?>
-                    <div class="notice notice-warning is-dismissible">
-                        <p><strong>SiteOverlay Pro:</strong> Trial expires in <?php echo $license_status['days_remaining']; ?> days! <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Upgrade Now</a></p>
-                    </div>
-                    <?php
-                } else {
-                    ?>
-                    <div class="notice notice-info is-dismissible">
-                        <p><strong>SiteOverlay Pro:</strong> Trial active - <?php echo $license_status['days_remaining']; ?> days remaining. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">View Details</a></p>
-                    </div>
-                    <?php
-                }
-                break;
-                
-            case 'trial_expired':
-                ?>
-                <div class="notice notice-error is-dismissible">
-                    <p><strong>SiteOverlay Pro:</strong> Trial expired - plugin is inactive. Enter a paid license to continue. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Upgrade Now</a></p>
-                </div>
-                <?php
-                break;
+        // CRITICAL FIX: Use the same is_licensed() method to avoid cache conflicts
+        if (!$this->is_licensed()) {
+            ?>
+            <div class="notice notice-warning is-dismissible">
+                <p><strong>SiteOverlay Pro:</strong> Plugin is inactive. Activate your license to use SiteOverlay Pro. <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>">Activate Now</a></p>
+            </div>
+            <?php
         }
     }
     
