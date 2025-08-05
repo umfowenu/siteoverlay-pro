@@ -63,6 +63,7 @@ class SiteOverlay_Pro {
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
             add_action('wp_ajax_siteoverlay_request_paid_license', array($this, 'ajax_request_paid_license'));
             add_action('wp_ajax_siteoverlay_save_license_key', array($this, 'ajax_save_license_key'));
+            add_action('wp_ajax_siteoverlay_clear_license_data', array($this, 'ajax_clear_license_data'));
         }
         
         // Frontend overlay display ALWAYS available (constitutional rule)
@@ -141,11 +142,14 @@ class SiteOverlay_Pro {
             )),
             'headers' => array('Content-Type' => 'application/json'),
             'timeout' => 10,
-            'blocking' => true // Blocking call for license check
+            'blocking' => true
         ));
         
         if (is_wp_error($response)) {
             error_log('🚨 License validation error: ' . $response->get_error_message());
+            // CRITICAL FIX: Clear invalid license on API error
+            delete_option('siteoverlay_license_key');
+            delete_option('siteoverlay_license_valid');
             return false;
         }
         
@@ -154,24 +158,47 @@ class SiteOverlay_Pro {
         
         if (!$data || !isset($data['success'])) {
             error_log('🚨 Invalid API response format');
+            // CRITICAL FIX: Clear invalid license on malformed response
+            delete_option('siteoverlay_license_key');
+            delete_option('siteoverlay_license_valid');
             return false;
         }
         
         $is_valid = $data['success'] === true;
         error_log('🔍 License validation result: ' . ($is_valid ? 'VALID' : 'INVALID'));
         
-        if (!$is_valid && isset($data['message'])) {
-            error_log('🚨 License validation failed: ' . $data['message']);
+        if (!$is_valid) {
+            error_log('🚨 License validation failed: ' . ($data['message'] ?? 'Unknown error'));
             
-            // If license is superseded or expired, clear it
-            if (strpos($data['message'], 'superseded') !== false || 
-                strpos($data['message'], 'expired') !== false) {
-                delete_option('siteoverlay_license_key');
-                delete_option('siteoverlay_license_valid');
-            }
+            // CRITICAL FIX: Always clear invalid licenses
+            delete_option('siteoverlay_license_key');
+            delete_option('siteoverlay_license_valid');
+            delete_option('siteoverlay_license_validated');
+            
+            // Also clear old license status data
+            delete_option('siteoverlay_license_status');
+            delete_option('siteoverlay_license_expiry');
+            
+            return false;
         }
         
-        return $is_valid;
+        error_log('✅ License validation successful');
+        return true;
+    }
+    
+    /**
+     * Manually clear all license data (for testing/debugging)
+     */
+    public function clear_all_license_data() {
+        delete_option('siteoverlay_license_key');
+        delete_option('siteoverlay_license_valid');
+        delete_option('siteoverlay_license_validated');
+        delete_option('siteoverlay_license_status');
+        delete_option('siteoverlay_license_expiry');
+        delete_option('siteoverlay_registration_name');
+        delete_option('siteoverlay_registration_email');
+        
+        error_log('🗑️ All license data cleared manually');
     }
     
     /**
@@ -350,6 +377,14 @@ class SiteOverlay_Pro {
                         }
                         ?>
                     </p>
+                    
+                    <!-- MANUAL CLEAR BUTTON -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                        <button type="button" class="button button-secondary" id="manual-clear-license" style="background: #dc3545; color: white; border-color: #dc3545;">
+                            🗑️ Clear All License Data
+                        </button>
+                        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">Use this to clear superseded/invalid licenses</p>
+                    </div>
                 </div>
                 
                 <!-- License Activation Options -->
@@ -1045,6 +1080,26 @@ class SiteOverlay_Pro {
                     }
                 });
             }
+
+            // Manual license clear handler
+            $('#manual-clear-license').on('click', function() {
+                if (confirm('Are you sure you want to clear all license data? This will reset the plugin to unlicensed state.')) {
+                    $(this).prop('disabled', true).text('Clearing...');
+                    
+                    $.post(ajaxurl, {
+                        action: 'siteoverlay_clear_license_data',
+                        nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                    }, function(response) {
+                        if (response.success) {
+                            alert('License data cleared successfully. Page will reload.');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.data);
+                            $('#manual-clear-license').prop('disabled', false).text('🗑️ Clear All License Data');
+                        }
+                    });
+                }
+            });
         });
         </script>
         <?php
@@ -1626,6 +1681,25 @@ class SiteOverlay_Pro {
         error_log('✅ License key saved successfully: ' . substr($license_key, 0, 8) . '...');
         
         wp_send_json_success('License key saved successfully');
+    }
+    
+    /**
+     * AJAX handler to manually clear all license data
+     */
+    public function ajax_clear_license_data() {
+        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $this->clear_all_license_data();
+        
+        wp_send_json_success('All license data cleared successfully');
     }
     
     /**
