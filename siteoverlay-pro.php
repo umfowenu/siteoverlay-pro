@@ -765,7 +765,7 @@ class SiteOverlay_Pro {
                 });
             });
             
-            // Paid license request (with auto-domain detection)
+            // Paid license request (call Railway API directly)
             $('#request-paid-license').on('click', function() {
                 var name = $('#paid-license-name').val();
                 var email = $('#paid-license-email').val();
@@ -777,22 +777,33 @@ class SiteOverlay_Pro {
                 
                 $(this).prop('disabled', true).text('Requesting...');
                 
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_request_paid_license',
-                    name: name,
-                    email: email,
-                    // Domain is auto-detected on server side - don't send it
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $('#paid-license-response').html('<span style="color: green;">' + response.data + '</span>');
-                        $('#paid-license-name').val('');
-                        $('#paid-license-email').val('');
-                    } else {
-                        $('#paid-license-response').html('<span style="color: red;">' + response.data + '</span>');
+                // Call Railway API directly with auto-detected domain
+                $.ajax({
+                    url: 'https://siteoverlay-api-production.up.railway.app/api/request-paid-license',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        name: name,
+                        email: email,
+                        domain: window.location.origin  // Auto-detect domain from current page
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#paid-license-response').html('<span style="color: green;">' + response.message + '</span>');
+                            $('#paid-license-name').val('');
+                            $('#paid-license-email').val('');
+                        } else {
+                            $('#paid-license-response').html('<span style="color: red;">' + response.message + '</span>');
+                        }
+                    },
+                    error: function() {
+                        $('#paid-license-response').html('<span style="color: red;">Error connecting to license server</span>');
+                    },
+                    complete: function() {
+                        $('#request-paid-license').prop('disabled', false).text('Request License Key');
                     }
-                }).always(function() {
-                    $('#request-paid-license').prop('disabled', false).text('Request License Key');
                 });
             });
 
