@@ -266,22 +266,48 @@ class SiteOverlay_Pro {
                 $should_disable_trial = $this->should_disable_trial_button();
                 ?>
                 
-                <!-- License State Interface -->
+                <!-- License Activation Options -->
                 <?php if ($license_status['state'] === 'unlicensed'): ?>
                     <!-- UNLICENSED STATE -->
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 15px 0; color: #856404;">🎯 Get Started with SiteOverlay Pro</h3>
-                        <p style="margin: 0 0 20px 0; color: #856404;">Choose how you'd like to activate SiteOverlay Pro:</p>
+                    <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
+                        <h2>🎯 Get Started with SiteOverlay Pro</h2>
+                        <p>Choose how you'd like to activate SiteOverlay Pro:</p>
                         
-                        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                        <!-- All Options in One Row -->
+                        <div style="display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center;">
+                            <!-- Trial Button -->
                             <button type="button" class="button button-primary" id="show-trial-form">Start 14-Day Free Trial</button>
-                            <button type="button" class="button button-secondary" id="show-license-form">Enter License Key</button>
+                            
+                            <!-- Already Purchased Button -->
+                            <button type="button" class="button" id="show-paid-license-form">💳 Already Purchased?</button>
+                            
+                            <!-- Enter License Key Button -->
+                            <button type="button" class="button" id="show-license-key-form">🔑 Enter License Key</button>
                         </div>
                         
-                        <!-- Trial Registration Form -->
-                        <div id="trial-registration-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                            <h4 style="margin: 0 0 15px 0; color: #495057;">Register for Free Trial</h4>
-                            <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter your details below to receive your 14-day trial license key via email.</p>
+                        <!-- Purchase Options Section -->
+                        <div style="margin: 30px 0;">
+                            <h3>🚀 Or Purchase a License</h3>
+                            <div style="display: flex; gap: 10px; margin: 15px 0;">
+                                <div style="background: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
+                                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">Professional</h4>
+                                    <div style="font-size: 18px; font-weight: bold; color: #1976d2;">$35/month</div>
+                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Up to 5 websites</div>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Professional</a>
+                                </div>
+                                <div style="background: #e8f5e8; border: 1px solid #4caf50; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
+                                    <h4 style="margin: 0 0 10px 0; color: #388e3c;">Annual Unlimited</h4>
+                                    <div style="font-size: 18px; font-weight: bold; color: #388e3c;">$197/year</div>
+                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Unlimited websites</div>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Annual</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trial Registration Form (Hidden by default) -->
+                        <div id="trial-registration-form" style="display: none; background: #f0f8ff; border: 1px solid #0073aa; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #0073aa;">Register for Free Trial</h4>
+                            <p style="margin: 0 0 15px 0; color: #0073aa;">Enter your details below to receive your 14-day trial license key via email.</p>
                             
                             <div style="margin-bottom: 15px;">
                                 <label for="full-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Full Name:</label>
@@ -294,45 +320,6 @@ class SiteOverlay_Pro {
                             </div>
                             
                             <button type="button" class="button button-primary" id="submit-trial-registration">Submit Registration</button>
-                        </div>
-                        
-                        <!-- License Key Form -->
-                        <div id="license-form" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                            <h4 style="margin: 0 0 15px 0; color: #495057;">Enter License Key</h4>
-                            <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 14px;">Enter the license key that was emailed to you after purchase.</p>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label for="license-key" style="display: block; margin-bottom: 5px; font-weight: bold;">License Key:</label>
-                                <input type="text" id="license-key" placeholder="Enter your license key" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
-                            </div>
-                            
-                            <button type="button" class="button button-primary" id="validate-license">Activate License</button>
-                        </div>
-                        
-                        <!-- Purchase Options for Unlicensed Users -->
-                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-top: 20px;">
-                            <h4 style="margin: 0 0 15px 0; color: #856404;">🚀 Or Purchase a License</h4>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
-                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
-                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Professional</h5>
-                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$35/month</p>
-                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Up to 5 websites</p>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary">Get Professional</a>
-                                </div>
-                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
-                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Annual Unlimited</h5>
-                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$197/year</p>
-                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
-                                </div>
-
-                            </div>
-                        </div>
-                        
-                        <!-- License Options (Elegant Toggle System) -->
-                        <div style="text-align: center; margin: 20px 0;">
-                            <button type="button" class="button" id="show-paid-license-form">💳 Already Purchased?</button>
-                            <button type="button" class="button" id="show-license-key-form">🔑 Enter License Key</button>
                         </div>
 
                         <!-- Paid License Request Form (Hidden by default) -->
@@ -735,19 +722,24 @@ class SiteOverlay_Pro {
                 }
             });
             
-            // Toggle forms (elegant system like trial)
+            // Add trial button handler to match the others
+            $('#show-trial-form').on('click', function() {
+                $('#trial-registration-form').toggle();
+                $('#paid-license-form').hide();
+                $('#license-key-form').hide();
+            });
+
+            // Keep existing handlers for the other buttons
             $('#show-paid-license-form').on('click', function() {
                 $('#paid-license-form').toggle();
-                $('#license-key-form').hide(); // Hide the other form
-                $('#trial-registration-form').hide(); // Hide trial form if open
-                $('#license-form').hide(); // Hide existing license form if open
+                $('#license-key-form').hide();
+                $('#trial-registration-form').hide();
             });
 
             $('#show-license-key-form').on('click', function() {
                 $('#license-key-form').toggle();
-                $('#paid-license-form').hide(); // Hide the other form
-                $('#trial-registration-form').hide(); // Hide trial form if open
-                $('#license-form').hide(); // Hide existing license form if open
+                $('#paid-license-form').hide();
+                $('#trial-registration-form').hide();
             });
             
             // Paid license request (with auto-domain detection)
