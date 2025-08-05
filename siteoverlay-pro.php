@@ -254,25 +254,11 @@ class SiteOverlay_Pro {
             }
             ?>
             
-            <!-- Downloads & Documentation Section -->
-            <div style="background: white; padding: 20px; margin: 20px 0; border: 1px solid #ddd;">
-                <h3>📥 Downloads & Documentation</h3>
-                <div style="margin: 15px 0;">
-                    <p><strong>Plugin Download:</strong> 
-                       <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">📦 Download Latest Version</a>
-                    </p>
-                    <p><strong>Installation Video:</strong> 
-                       <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">🎥 Watch Tutorial</a>
-                    </p>
-                    <p><strong>Installation Guide:</strong> 
-                       <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">📄 Download PDF Guide</a>
-                    </p>
-                </div>
-            </div>
-            
-            <!-- License Status Section -->
-            <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-                <h2>License Status</h2>
+            <!-- License Status & Downloads Section (Side by Side) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <!-- License Status Section -->
+                <div style="background: white; border: 1px solid #ddd; padding: 20px;">
+                    <h2>License Status</h2>
                 
                 <?php 
                 $is_registered = get_option('siteoverlay_registration_name');
@@ -467,6 +453,23 @@ class SiteOverlay_Pro {
                 <?php endif; ?>
                 
                 <div id="license-response" style="margin-top: 10px;"></div>
+                </div>
+                
+                <!-- Downloads & Documentation Section -->
+                <div style="background: white; border: 1px solid #ddd; padding: 20px;">
+                    <h3>📥 Downloads & Documentation</h3>
+                    <div style="margin: 15px 0;">
+                        <p><strong>Plugin Download:</strong> 
+                           <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">📦 Download Latest Version</a>
+                        </p>
+                        <p><strong>Installation Video:</strong> 
+                           <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">🎥 Watch Tutorial</a>
+                        </p>
+                        <p><strong>Installation Guide:</strong> 
+                           <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">📄 Download PDF Guide</a>
+                        </p>
+                    </div>
+                </div>
             </div>
             
             <!-- Recent Overlays - Always available (constitutional rule) -->
@@ -805,7 +808,7 @@ class SiteOverlay_Pro {
                 <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
                 <a href="<?php echo esc_url($this->get_dynamic_content('metabox_affiliate_url', 'https://xagio.net/?ref=siteoverlay')); ?>" target="_blank" 
                    style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
-                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
+
             </div>
             
 
@@ -835,7 +838,7 @@ class SiteOverlay_Pro {
                 <div style="color: #0c5460; font-size: 12px; margin-bottom: 10px;"><?php echo esc_html($this->get_dynamic_content('metabox_boost_subtitle', 'Get Xagio - The #1 SEO Tool for Rank & Rent Success')); ?></div>
                 <a href="<?php echo esc_url($this->get_dynamic_content('metabox_affiliate_url', 'https://xagio.net/?ref=siteoverlay')); ?>" target="_blank" 
                    style="background: #17a2b8; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; display: inline-block;"><?php echo esc_html($this->get_dynamic_content('metabox_button_text', 'Get Xagio Now')); ?></a>
-                <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
+
             </div>
             
             <!-- Current Overlay Section -->
