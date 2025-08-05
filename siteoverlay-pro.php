@@ -1835,9 +1835,18 @@ class SiteOverlay_Pro {
         
         // Check paid license states
         if ($license_status && $license_validated && $license_status !== 'trial') {
+            // Determine proper status based on license validation
+            $current_status = 'active';  // Default to active for validated paid licenses
+            
+            // Check if we have real-time validation results
+            $license_valid = get_option('siteoverlay_license_valid', null);
+            if ($license_valid === false) {
+                $current_status = 'inactive';
+            }
+            
             return array(
                 'state' => 'licensed',
-                'status' => $license_status,
+                'status' => $current_status,
                 'message' => 'License active',
                 'expiry' => $license_expiry,
                 'features_enabled' => true,
