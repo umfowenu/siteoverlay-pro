@@ -854,7 +854,7 @@ class SiteOverlay_Pro {
                 });
             });
 
-            // License activation handler  
+            // License activation with warning system
             $('#activate-license').on('click', function() {
                 var licenseKey = $('#license-key-input').val();
                 
@@ -863,23 +863,91 @@ class SiteOverlay_Pro {
                     return;
                 }
                 
-                $(this).prop('disabled', true).text('Activating...');
-                
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_validate_license',
-                    license_key: licenseKey,
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $('#license-activation-response').html('<span style="color: green;">License activated! Reloading page...</span>');
-                        setTimeout(function() { location.reload(); }, 2000);
-                    } else {
-                        $('#license-activation-response').html('<span style="color: red;">' + response.data + '</span>');
-                    }
-                }).always(function() {
-                    $('#activate-license').prop('disabled', false).text('Activate License');
-                });
+                // First, check for existing license
+                checkExistingLicenseAndActivate(licenseKey);
             });
+
+            // Function to check for existing license and show warning
+            function checkExistingLicenseAndActivate(licenseKey) {
+                $('#license-activation-response').html('<span style="color: blue;">Checking existing licenses...</span>');
+                
+                $.ajax({
+                    url: 'https://siteoverlay-api-production.up.railway.app/api/check-existing-license',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        siteUrl: window.location.origin
+                    }),
+                    success: function(response) {
+                        if (response.success && response.existing_license) {
+                            // Show warning dialog
+                            showLicenseReplaceWarning(response.existing_license, licenseKey);
+                        } else {
+                            // No existing license, proceed directly
+                            activateLicense(licenseKey);
+                        }
+                    },
+                    error: function() {
+                        // If check fails, proceed anyway (fallback)
+                        $('#license-activation-response').html('<span style="color: orange;">Could not check existing license. Proceeding...</span>');
+                        setTimeout(function() {
+                            activateLicense(licenseKey);
+                        }, 1000);
+                    }
+                });
+            }
+
+            // Show warning dialog for license replacement
+            function showLicenseReplaceWarning(existingLicense, newLicenseKey) {
+                var expiryText = existingLicense.expires ? 
+                    ' (expires: ' + existingLicense.expires.split('T')[0] + ')' : 
+                    ' (no expiration)';
+                
+                var warningMessage = 
+                    'You currently have an active ' + existingLicense.type + ' license' + expiryText + '.\n\n' +
+                    'Activating this new license will replace your current license.\n\n' +
+                    'Do you want to continue?';
+                
+                if (confirm(warningMessage)) {
+                    $('#license-activation-response').html('<span style="color: blue;">Replacing existing license...</span>');
+                    activateLicense(newLicenseKey);
+                } else {
+                    $('#license-activation-response').html('<span style="color: gray;">License activation cancelled.</span>');
+                }
+            }
+
+            // Activate license (same as before)
+            function activateLicense(licenseKey) {
+                $('#activate-license').prop('disabled', true).text('Activating...');
+                
+                $.ajax({
+                    url: 'https://siteoverlay-api-production.up.railway.app/api/validate-license',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        licenseKey: licenseKey,
+                        siteUrl: window.location.origin
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#license-activation-response').html('<span style="color: green;">License activated successfully! Reloading page...</span>');
+                            setTimeout(function() { location.reload(); }, 2000);
+                        } else {
+                            $('#license-activation-response').html('<span style="color: red;">' + response.message + '</span>');
+                        }
+                    },
+                    error: function() {
+                        $('#license-activation-response').html('<span style="color: red;">Error connecting to license server</span>');
+                    },
+                    complete: function() {
+                        $('#activate-license').prop('disabled', false).text('Activate License');
+                    }
+                });
+            }
         });
         </script>
         <?php
