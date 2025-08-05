@@ -735,7 +735,7 @@ class SiteOverlay_Pro {
                 $('#trial-registration-form').hide();
             });
 
-            // Trial form submission handler
+            // Trial form submission handler (FIXED)
             $('#request-trial').on('click', function() {
                 var name = $('#trial-name').val();
                 var email = $('#trial-email').val();
@@ -747,21 +747,37 @@ class SiteOverlay_Pro {
                 
                 $(this).prop('disabled', true).text('Processing...');
                 
-                $.post(ajaxurl, {
-                    action: 'siteoverlay_trial_license',
-                    full_name: name,
-                    email: email,
-                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $('#trial-response').html('<span style="color: green;">' + response.data + '</span>');
-                        $('#trial-name').val('');
-                        $('#trial-email').val('');
-                    } else {
-                        $('#trial-response').html('<span style="color: red;">' + response.data + '</span>');
+                // Call Railway API directly for trial license
+                $.ajax({
+                    url: 'https://siteoverlay-api-production.up.railway.app/api/request-trial',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        full_name: name,
+                        email: email,
+                        domain: window.location.origin
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#trial-response').html('<span style="color: green;">Your information has been submitted. Check your email for license details.</span>');
+                            $('#trial-name').val('');
+                            $('#trial-email').val('');
+                        } else {
+                            // Handle specific error messages from Railway API
+                            var errorMessage = response.message || 'Trial request failed. Please try again.';
+                            $('#trial-response').html('<span style="color: red;">' + errorMessage + '</span>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle connection errors
+                        $('#trial-response').html('<span style="color: red;">Error connecting to license server. Please try again.</span>');
+                        console.error('Trial request error:', xhr.responseText);
+                    },
+                    complete: function() {
+                        $('#request-trial').prop('disabled', false).text('Start Free Trial');
                     }
-                }).always(function() {
-                    $('#request-trial').prop('disabled', false).text('Start Free Trial');
                 });
             });
             
