@@ -285,41 +285,23 @@ class SiteOverlay_Pro {
                             <button type="button" class="button" id="show-license-key-form">🔑 Enter License Key</button>
                         </div>
                         
-                        <!-- Purchase Options Section -->
-                        <div style="margin: 30px 0;">
-                            <h3>🚀 Or Purchase a License</h3>
-                            <div style="display: flex; gap: 10px; margin: 15px 0;">
-                                <div style="background: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
-                                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">Professional</h4>
-                                    <div style="font-size: 18px; font-weight: bold; color: #1976d2;">$35/month</div>
-                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Up to 5 websites</div>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Professional</a>
-                                </div>
-                                <div style="background: #e8f5e8; border: 1px solid #4caf50; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
-                                    <h4 style="margin: 0 0 10px 0; color: #388e3c;">Annual Unlimited</h4>
-                                    <div style="font-size: 18px; font-weight: bold; color: #388e3c;">$197/year</div>
-                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Unlimited websites</div>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Annual</a>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- FORMS GO HERE - Between buttons and purchase options -->
                         
                         <!-- Trial Registration Form (Hidden by default) -->
-                        <div id="trial-registration-form" style="display: none; background: #f0f8ff; border: 1px solid #0073aa; padding: 20px; margin: 15px 0; border-radius: 5px;">
-                            <h4 style="margin: 0 0 15px 0; color: #0073aa;">Register for Free Trial</h4>
-                            <p style="margin: 0 0 15px 0; color: #0073aa;">Enter your details below to receive your 14-day trial license key via email.</p>
+                        <div id="trial-registration-form" style="display: none; background: #e8f5e8; border: 1px solid #4caf50; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #388e3c;">🎯 Start Your 14-Day Free Trial</h4>
+                            <p style="margin: 0 0 15px 0; color: #388e3c;">Get instant access to SiteOverlay Pro with no commitment.</p>
                             
                             <div style="margin-bottom: 15px;">
-                                <label for="full-name" style="display: block; margin-bottom: 5px; font-weight: bold;">Full Name:</label>
-                                <input type="text" id="full-name" placeholder="Enter your full name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
+                                <input type="text" id="trial-name" placeholder="Enter your full name" style="width: 100%; padding: 8px;" />
                             </div>
                             
                             <div style="margin-bottom: 15px;">
-                                <label for="email-address" style="display: block; margin-bottom: 5px; font-weight: bold;">Email Address:</label>
-                                <input type="email" id="email-address" placeholder="Enter your email address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" />
+                                <input type="email" id="trial-email" placeholder="Enter your email address" style="width: 100%; padding: 8px;" />
                             </div>
                             
-                            <button type="button" class="button button-primary" id="submit-trial-registration">Submit Registration</button>
+                            <button type="button" class="button button-primary" id="request-trial">Start Free Trial</button>
+                            <div id="trial-response" style="margin-top: 10px;"></div>
                         </div>
 
                         <!-- Paid License Request Form (Hidden by default) -->
@@ -350,6 +332,25 @@ class SiteOverlay_Pro {
                             
                             <button type="button" class="button button-primary" id="activate-license">Activate License</button>
                             <div id="license-activation-response" style="margin-top: 10px;"></div>
+                        </div>
+                        
+                        <!-- Purchase Options Section - COMES AFTER FORMS -->
+                        <div style="margin: 30px 0;">
+                            <h3>🚀 Or Purchase a License</h3>
+                            <div style="display: flex; gap: 10px; margin: 15px 0;">
+                                <div style="background: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
+                                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">Professional</h4>
+                                    <div style="font-size: 18px; font-weight: bold; color: #1976d2;">$35/month</div>
+                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Up to 5 websites</div>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Professional</a>
+                                </div>
+                                <div style="background: #e8f5e8; border: 1px solid #4caf50; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
+                                    <h4 style="margin: 0 0 10px 0; color: #388e3c;">Annual Unlimited</h4>
+                                    <div style="font-size: 18px; font-weight: bold; color: #388e3c;">$197/year</div>
+                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Unlimited websites</div>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary" style="margin-top: 10px;">Get Annual</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -722,24 +723,55 @@ class SiteOverlay_Pro {
                 }
             });
             
-            // Add trial button handler to match the others
+            // Trial button handler (make sure this works)
             $('#show-trial-form').on('click', function() {
                 $('#trial-registration-form').toggle();
                 $('#paid-license-form').hide();
                 $('#license-key-form').hide();
             });
 
-            // Keep existing handlers for the other buttons
+            // Paid license button handler
             $('#show-paid-license-form').on('click', function() {
                 $('#paid-license-form').toggle();
                 $('#license-key-form').hide();
                 $('#trial-registration-form').hide();
             });
 
+            // License key button handler
             $('#show-license-key-form').on('click', function() {
                 $('#license-key-form').toggle();
                 $('#paid-license-form').hide();
                 $('#trial-registration-form').hide();
+            });
+
+            // Trial form submission handler
+            $('#request-trial').on('click', function() {
+                var name = $('#trial-name').val();
+                var email = $('#trial-email').val();
+                
+                if (!name || !email) {
+                    $('#trial-response').html('<span style="color: red;">Please enter both name and email</span>');
+                    return;
+                }
+                
+                $(this).prop('disabled', true).text('Processing...');
+                
+                $.post(ajaxurl, {
+                    action: 'siteoverlay_trial_license',
+                    full_name: name,
+                    email: email,
+                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        $('#trial-response').html('<span style="color: green;">' + response.data + '</span>');
+                        $('#trial-name').val('');
+                        $('#trial-email').val('');
+                    } else {
+                        $('#trial-response').html('<span style="color: red;">' + response.data + '</span>');
+                    }
+                }).always(function() {
+                    $('#request-trial').prop('disabled', false).text('Start Free Trial');
+                });
             });
             
             // Paid license request (with auto-domain detection)
