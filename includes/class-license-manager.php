@@ -778,19 +778,7 @@ class SiteOverlay_License_Manager {
                             </ul>
                             <a href="https://siteoverlay.24hr.pro/?plan=annual" class="button button-primary" target="_blank" style="padding: 10px 20px;">Purchase Annual</a>
                         </div>
-                        
-                        <div style="border: 2px solid #ffc107; padding: 20px; text-align: center; border-radius: 8px; position: relative;">
-                            <div style="background: #d63638; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; position: absolute; top: -8px; right: 10px; font-weight: bold;">LIMITED TIME</div>
-                            <h3 style="margin: 0 0 10px 0; color: #23282d;">Lifetime Unlimited</h3>
-                            <div style="font-size: 28px; font-weight: bold; color: #ffc107; margin: 10px 0;">$297 one-time</div>
-                            <ul style="list-style: none; padding: 0; margin: 15px 0; text-align: left;">
-                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Unlimited websites</li>
-                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Lifetime license</li>
-                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Premium support</li>
-                                <li style="padding: 8px 0;">✅ Lifetime updates</li>
-                            </ul>
-                            <a href="https://siteoverlay.24hr.pro/?plan=lifetime" class="button button-primary" target="_blank" style="padding: 10px 20px;">Get Lifetime Deal</a>
-                        </div>
+
                     </div>
                 </div>
             <?php endif; ?>

@@ -324,12 +324,7 @@ class SiteOverlay_Pro {
                                     <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
                                     <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
                                 </div>
-                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
-                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Lifetime</h5>
-                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$297</p>
-                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">One-time payment</p>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" target="_blank" class="button button-primary">Get Lifetime</a>
-                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -381,12 +376,7 @@ class SiteOverlay_Pro {
                                     <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
                                     <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
                                 </div>
-                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
-                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Lifetime</h5>
-                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$297</p>
-                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">One-time payment</p>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" target="_blank" class="button button-primary">Get Lifetime</a>
-                                </div>
+
                             </div>
                         </div>
                         
@@ -421,12 +411,7 @@ class SiteOverlay_Pro {
                                     <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">Unlimited websites</p>
                                     <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary">Get Annual</a>
                                 </div>
-                                <div style="background: white; padding: 15px; border-radius: 5px; text-align: center;">
-                                    <h5 style="margin: 0 0 10px 0; color: #495057;">Lifetime</h5>
-                                    <p style="margin: 0 0 10px 0; font-size: 24px; font-weight: bold; color: #28a745;">$297</p>
-                                    <p style="margin: 0 0 10px 0; color: #6c757d; font-size: 12px;">One-time payment</p>
-                                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" target="_blank" class="button button-primary">Get Lifetime</a>
-                                </div>
+
                             </div>
                         </div>
                         
