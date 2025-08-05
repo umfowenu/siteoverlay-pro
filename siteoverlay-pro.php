@@ -329,33 +329,36 @@ class SiteOverlay_Pro {
                             </div>
                         </div>
                         
-                        <!-- Paid License Request -->
-                        <div style="background: #f0f8ff; border: 1px solid #0073aa; padding: 20px; margin: 15px 0; border-radius: 5px;">
-                            <h4 style="margin: 0 0 15px 0; color: #0073aa;">💳 Already Purchased? Request Your License</h4>
+                        <!-- License Options (Elegant Toggle System) -->
+                        <div style="text-align: center; margin: 20px 0;">
+                            <button type="button" class="button" id="show-paid-license-form">💳 Already Purchased?</button>
+                            <button type="button" class="button" id="show-license-key-form">🔑 Enter License Key</button>
+                        </div>
+
+                        <!-- Paid License Request Form (Hidden by default) -->
+                        <div id="paid-license-form" style="display: none; background: #f0f8ff; border: 1px solid #0073aa; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #0073aa;">💳 Request Your License Key</h4>
                             <p style="margin: 0 0 15px 0; color: #0073aa;">Enter your purchase details to receive your license key via email.</p>
                             
                             <div style="margin-bottom: 15px;">
-                                <label for="paid-license-name">Full Name:</label>
-                                <input type="text" id="paid-license-name" placeholder="Enter your full name" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                                <input type="text" id="paid-license-name" placeholder="Enter your full name" style="width: 100%; padding: 8px;" />
                             </div>
                             
                             <div style="margin-bottom: 15px;">
-                                <label for="paid-license-email">Email Address:</label>
-                                <input type="email" id="paid-license-email" placeholder="Enter your email address" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                                <input type="email" id="paid-license-email" placeholder="Enter your email address" style="width: 100%; padding: 8px;" />
                             </div>
                             
                             <button type="button" class="button button-primary" id="request-paid-license">Request License Key</button>
                             <div id="paid-license-response" style="margin-top: 10px;"></div>
                         </div>
-                        
-                        <!-- License Activation -->
-                        <div style="background: #fff2e6; border: 1px solid #ff8c00; padding: 20px; margin: 15px 0; border-radius: 5px;">
-                            <h4 style="margin: 0 0 15px 0; color: #ff8c00;">🔑 Have a License Key? Activate It</h4>
+
+                        <!-- License Key Entry Form (Hidden by default) -->
+                        <div id="license-key-form" style="display: none; background: #fff2e6; border: 1px solid #ff8c00; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #ff8c00;">🔑 Activate Your License</h4>
                             <p style="margin: 0 0 15px 0; color: #ff8c00;">Enter your license key to activate SiteOverlay Pro.</p>
                             
                             <div style="margin-bottom: 15px;">
-                                <label for="license-key-input">License Key:</label>
-                                <input type="text" id="license-key-input" placeholder="SITE-XXXX-XXXX-XXXX" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                                <input type="text" id="license-key-input" placeholder="SITE-XXXX-XXXX-XXXX" style="width: 100%; padding: 8px;" />
                             </div>
                             
                             <button type="button" class="button button-primary" id="activate-license">Activate License</button>
@@ -732,7 +735,22 @@ class SiteOverlay_Pro {
                 }
             });
             
-            // Paid license request handler
+            // Toggle forms (elegant system like trial)
+            $('#show-paid-license-form').on('click', function() {
+                $('#paid-license-form').toggle();
+                $('#license-key-form').hide(); // Hide the other form
+                $('#trial-registration-form').hide(); // Hide trial form if open
+                $('#license-form').hide(); // Hide existing license form if open
+            });
+
+            $('#show-license-key-form').on('click', function() {
+                $('#license-key-form').toggle();
+                $('#paid-license-form').hide(); // Hide the other form
+                $('#trial-registration-form').hide(); // Hide trial form if open
+                $('#license-form').hide(); // Hide existing license form if open
+            });
+            
+            // Paid license request (with auto-domain detection)
             $('#request-paid-license').on('click', function() {
                 var name = $('#paid-license-name').val();
                 var email = $('#paid-license-email').val();
@@ -748,10 +766,13 @@ class SiteOverlay_Pro {
                     action: 'siteoverlay_request_paid_license',
                     name: name,
                     email: email,
+                    // Domain is auto-detected on server side - don't send it
                     nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
                 }, function(response) {
                     if (response.success) {
                         $('#paid-license-response').html('<span style="color: green;">' + response.data + '</span>');
+                        $('#paid-license-name').val('');
+                        $('#paid-license-email').val('');
                     } else {
                         $('#paid-license-response').html('<span style="color: red;">' + response.data + '</span>');
                     }
