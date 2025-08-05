@@ -255,7 +255,7 @@ class SiteOverlay_Pro {
             ?>
             
             <!-- License Status & Downloads Section (Side by Side) -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; align-items: stretch;">
                 <!-- License Status Section -->
                 <div style="background: white; border: 1px solid #ddd; padding: 20px;">
                     <h2>License Status</h2>
@@ -441,58 +441,61 @@ class SiteOverlay_Pro {
                 </div>
                 
                 <!-- Downloads & Documentation Section -->
-                <div style="background: white; border: 1px solid #ddd; padding: 20px;">
+                <div style="background: white; border: 1px solid #ddd; padding: 20px; display: flex; flex-direction: column;">
                     <h3>📥 Downloads & Documentation</h3>
-                    <div style="margin: 15px 0;">
-                        <p><strong>Plugin Download:</strong> 
-                           <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">📦 Download Latest Version</a>
-                        </p>
-                        <p><strong>Installation Video:</strong> 
-                           <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">🎥 Watch Tutorial</a>
-                        </p>
-                        <p><strong>Installation Guide:</strong> 
-                           <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">📄 Download PDF Guide</a>
-                        </p>
+                    
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin-top: 15px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <p style="margin: 0 0 20px 0;"><strong>Plugin Download:</strong> 
+                               <a href="<?php echo esc_url($plugin_download_url); ?>" target="_blank" class="button button-primary">📦 Download Latest Version</a>
+                            </p>
+                            <p style="margin: 0 0 20px 0;"><strong>Installation Video:</strong> 
+                               <a href="<?php echo esc_url($installation_video_url); ?>" target="_blank" class="button">🎥 Watch Tutorial</a>
+                            </p>
+                            <p style="margin: 0 0 20px 0;"><strong>Installation Guide:</strong> 
+                               <a href="<?php echo esc_url($installation_guide_pdf_url); ?>" target="_blank" class="button">📄 Download PDF Guide</a>
+                            </p>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ffeaa7;">
+                            <h4 style="margin: 0 0 15px 0; color: #856404;">Recent Overlays</h4>
+                            <?php if ($recent_overlays): ?>
+                                <table class="wp-list-table widefat fixed striped" style="background: white; border-radius: 3px;">
+                                    <thead>
+                                        <tr>
+                                            <th style="font-size: 11px;">Post/Page</th>
+                                            <th style="font-size: 11px;">Overlay URL</th>
+                                            <th style="font-size: 11px;">Views</th>
+                                            <th style="font-size: 11px;">Last Updated</th>
+                                            <th style="font-size: 11px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($recent_overlays as $overlay): ?>
+                                            <tr>
+                                                <td style="font-size: 11px;">
+                                                    <a href="<?php echo get_edit_post_link($overlay->ID); ?>"><?php echo esc_html($overlay->post_title); ?></a>
+                                                </td>
+                                                <td style="font-size: 11px;">
+                                                    <a href="<?php echo esc_url($overlay->overlay_url); ?>" target="_blank"><?php echo esc_html($overlay->overlay_url); ?></a>
+                                                </td>
+                                                <td style="font-size: 11px;"><?php echo $overlay->views ?: '0'; ?></td>
+                                                <td style="font-size: 11px;"><?php echo $overlay->updated ?: 'Never'; ?></td>
+                                                <td style="font-size: 11px;">
+                                                    <a href="<?php echo get_edit_post_link($overlay->ID); ?>" class="button button-small">Edit</a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php else: ?>
+                                <p style="margin: 0; color: #856404; text-align: center;">No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>" style="color: #856404;">Create your first overlay</a></p>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Recent Overlays - Always available (constitutional rule) -->
-            <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
-                <h2>Recent Overlays</h2>
-                <?php if ($recent_overlays): ?>
-                        <table class="wp-list-table widefat fixed striped">
-                            <thead>
-                                <tr>
-                                    <th>Post/Page</th>
-                                    <th>Overlay URL</th>
-                                    <th>Views</th>
-                                    <th>Last Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($recent_overlays as $overlay): ?>
-                                    <tr>
-                                        <td>
-                                            <a href="<?php echo get_edit_post_link($overlay->ID); ?>"><?php echo esc_html($overlay->post_title); ?></a>
-                                        </td>
-                                        <td>
-                                            <a href="<?php echo esc_url($overlay->overlay_url); ?>" target="_blank"><?php echo esc_html($overlay->overlay_url); ?></a>
-                                        </td>
-                                        <td><?php echo $overlay->views ?: '0'; ?></td>
-                                        <td><?php echo $overlay->updated ?: 'Never'; ?></td>
-                                        <td>
-                                            <a href="<?php echo get_edit_post_link($overlay->ID); ?>" class="button button-small">Edit</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                <?php else: ?>
-                    <p>No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>">Create your first overlay</a></p>
-                <?php endif; ?>
-            </div>
+
 
         </div>
         
@@ -774,10 +777,7 @@ class SiteOverlay_Pro {
                        target="_blank" class="button button-secondary" style="font-size: 11px; padding: 4px 8px; margin: 2px;">
                        $197/year
                     </a>
-                    <a href="https://siteoverlay.24hr.pro/?plan=lifetime" 
-                       target="_blank" class="button button-secondary" style="font-size: 11px; padding: 4px 8px; margin: 2px;">
-                       $297 lifetime
-                    </a>
+
                 </div>
                 
                 <div style="font-size: 10px; color: #721c24; margin-top: 10px;">
