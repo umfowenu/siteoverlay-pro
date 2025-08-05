@@ -61,6 +61,7 @@ class SiteOverlay_Pro {
             // License management AJAX handlers (always available)
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
+            add_action('wp_ajax_siteoverlay_request_paid_license', array($this, 'ajax_request_paid_license'));
         }
         
         // Frontend overlay display ALWAYS available (constitutional rule)
@@ -326,6 +327,39 @@ class SiteOverlay_Pro {
                                 </div>
 
                             </div>
+                        </div>
+                        
+                        <!-- Paid License Request -->
+                        <div style="background: #f0f8ff; border: 1px solid #0073aa; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #0073aa;">💳 Already Purchased? Request Your License</h4>
+                            <p style="margin: 0 0 15px 0; color: #0073aa;">Enter your purchase details to receive your license key via email.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label for="paid-license-name">Full Name:</label>
+                                <input type="text" id="paid-license-name" placeholder="Enter your full name" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label for="paid-license-email">Email Address:</label>
+                                <input type="email" id="paid-license-email" placeholder="Enter your email address" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="request-paid-license">Request License Key</button>
+                            <div id="paid-license-response" style="margin-top: 10px;"></div>
+                        </div>
+                        
+                        <!-- License Activation -->
+                        <div style="background: #fff2e6; border: 1px solid #ff8c00; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #ff8c00;">🔑 Have a License Key? Activate It</h4>
+                            <p style="margin: 0 0 15px 0; color: #ff8c00;">Enter your license key to activate SiteOverlay Pro.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label for="license-key-input">License Key:</label>
+                                <input type="text" id="license-key-input" placeholder="SITE-XXXX-XXXX-XXXX" style="width: 100%; padding: 8px; margin-top: 5px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="activate-license">Activate License</button>
+                            <div id="license-activation-response" style="margin-top: 10px;"></div>
                         </div>
                     </div>
                     
@@ -696,6 +730,61 @@ class SiteOverlay_Pro {
                         $(this).remove();
                     });
                 }
+            });
+            
+            // Paid license request handler
+            $('#request-paid-license').on('click', function() {
+                var name = $('#paid-license-name').val();
+                var email = $('#paid-license-email').val();
+                
+                if (!name || !email) {
+                    $('#paid-license-response').html('<span style="color: red;">Please enter both name and email</span>');
+                    return;
+                }
+                
+                $(this).prop('disabled', true).text('Requesting...');
+                
+                $.post(ajaxurl, {
+                    action: 'siteoverlay_request_paid_license',
+                    name: name,
+                    email: email,
+                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        $('#paid-license-response').html('<span style="color: green;">' + response.data + '</span>');
+                    } else {
+                        $('#paid-license-response').html('<span style="color: red;">' + response.data + '</span>');
+                    }
+                }).always(function() {
+                    $('#request-paid-license').prop('disabled', false).text('Request License Key');
+                });
+            });
+
+            // License activation handler  
+            $('#activate-license').on('click', function() {
+                var licenseKey = $('#license-key-input').val();
+                
+                if (!licenseKey) {
+                    $('#license-activation-response').html('<span style="color: red;">Please enter your license key</span>');
+                    return;
+                }
+                
+                $(this).prop('disabled', true).text('Activating...');
+                
+                $.post(ajaxurl, {
+                    action: 'siteoverlay_validate_license',
+                    license_key: licenseKey,
+                    nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        $('#license-activation-response').html('<span style="color: green;">License activated! Reloading page...</span>');
+                        setTimeout(function() { location.reload(); }, 2000);
+                    } else {
+                        $('#license-activation-response').html('<span style="color: red;">' + response.data + '</span>');
+                    }
+                }).always(function() {
+                    $('#activate-license').prop('disabled', false).text('Activate License');
+                });
             });
         });
         </script>
@@ -1195,6 +1284,54 @@ class SiteOverlay_Pro {
                 'success' => false,
                 'message' => $data['message'] ?? 'Invalid license key'
             );
+        }
+    }
+    
+    /**
+     * AJAX handler for paid license requests
+     */
+    public function ajax_request_paid_license() {
+        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $name = sanitize_text_field($_POST['name']);
+        $email = sanitize_email($_POST['email']);
+        
+        if (empty($name) || empty($email)) {
+            wp_send_json_error('Please enter both name and email');
+            return;
+        }
+        
+        // Send request to Railway API
+        $api_response = wp_remote_post($this->api_base_url . '/request-paid-license', array(
+            'body' => json_encode(array(
+                'name' => $name,
+                'email' => $email,
+                'siteUrl' => get_site_url()
+            )),
+            'headers' => array('Content-Type' => 'application/json'),
+            'timeout' => 10
+        ));
+        
+        if (is_wp_error($api_response)) {
+            wp_send_json_error('Connection error: ' . $api_response->get_error_message());
+            return;
+        }
+        
+        $body = wp_remote_retrieve_body($api_response);
+        $data = json_decode($body, true);
+        
+        if (isset($data['success']) && $data['success'] === true) {
+            wp_send_json_success($data['message'] ?? 'License request submitted successfully! Check your email.');
+        } else {
+            wp_send_json_error($data['message'] ?? 'Failed to process license request');
         }
     }
     
