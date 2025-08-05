@@ -612,6 +612,73 @@ class SiteOverlay_Pro {
                             <br><strong>Registered Email:</strong> <?php echo esc_html(get_option('siteoverlay_registration_email')); ?>
                         </p>
                     </div>
+                    
+                    <!-- LICENSE UPGRADE OPTIONS - Always Available -->
+                    <div style="background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px;">
+                        <h2>🔄 License Management</h2>
+                        <p>Your license is active. You can upgrade or change your license anytime:</p>
+                        
+                        <!-- License Options - All Available -->
+                        <div style="display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center;">
+                            <!-- Trial Button - Disabled (already have license) -->
+                            <button type="button" class="button" disabled style="opacity: 0.5; cursor: not-allowed;">✅ License Already Active</button>
+                            
+                            <!-- Already Purchased Button - Still Available for upgrades -->
+                            <button type="button" class="button" id="show-paid-license-form">💳 Already Purchased Upgrade?</button>
+                            
+                            <!-- Enter License Key Button - Still Available -->
+                            <button type="button" class="button" id="show-license-key-form">🔑 Enter Different License Key</button>
+                        </div>
+                        
+                        <!-- Paid License Request Form -->
+                        <div id="paid-license-form" style="display: none; background: #f0f8ff; border: 1px solid #0073aa; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #0073aa;">💳 Request Your Upgrade License Key</h4>
+                            <p style="margin: 0 0 15px 0; color: #0073aa;">Enter your upgrade purchase details to receive your new license key via email.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <input type="text" id="paid-license-name" placeholder="Enter your full name" style="width: 100%; padding: 8px;" />
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <input type="email" id="paid-license-email" placeholder="Enter your email address" style="width: 100%; padding: 8px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="request-paid-license">Request Upgrade License Key</button>
+                            <div id="paid-license-response" style="margin-top: 10px;"></div>
+                        </div>
+
+                        <!-- License Key Entry Form -->
+                        <div id="license-key-form" style="display: none; background: #fff2e6; border: 1px solid #ff8c00; padding: 20px; margin: 15px 0; border-radius: 5px;">
+                            <h4 style="margin: 0 0 15px 0; color: #ff8c00;">🔑 Activate Different License</h4>
+                            <p style="margin: 0 0 15px 0; color: #ff8c00;">Enter a different license key to replace your current license.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <input type="text" id="license-key-input" placeholder="SITE-XXXX-XXXX-XXXX" style="width: 100%; padding: 8px;" />
+                            </div>
+                            
+                            <button type="button" class="button button-primary" id="activate-license">Replace Current License</button>
+                            <div id="license-activation-response" style="margin-top: 10px;"></div>
+                        </div>
+                        
+                        <!-- Purchase Options Section - Still Available for upgrades -->
+                        <div style="margin: 30px 0;">
+                            <h3>🚀 Upgrade Your License</h3>
+                            <div style="display: flex; gap: 10px; margin: 15px 0;">
+                                <div style="background: #e3f2fd; border: 1px solid #2196f3; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
+                                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">Professional</h4>
+                                    <div style="font-size: 18px; font-weight: bold; color: #1976d2;">$35/month</div>
+                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Up to 5 websites</div>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=professional" target="_blank" class="button button-primary" style="margin-top: 10px;">Upgrade to Professional</a>
+                                </div>
+                                <div style="background: #e8f5e8; border: 1px solid #4caf50; padding: 15px; border-radius: 5px; flex: 1; text-align: center;">
+                                    <h4 style="margin: 0 0 10px 0; color: #388e3c;">Annual Unlimited</h4>
+                                    <div style="font-size: 18px; font-weight: bold; color: #388e3c;">$197/year</div>
+                                    <div style="font-size: 12px; color: #666; margin: 5px 0;">Unlimited websites</div>
+                                    <a href="https://siteoverlay.24hr.pro/?plan=annual" target="_blank" class="button button-primary" style="margin-top: 10px;">Upgrade to Annual</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 <?php endif; ?>
                 
                 <div id="license-response" style="margin-top: 10px;"></div>
