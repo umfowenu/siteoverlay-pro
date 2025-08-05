@@ -548,16 +548,7 @@ class SiteOverlay_Pro {
                 });
             });
             
-            // License functionality
-            $('#show-trial-form').on('click', function() {
-                $('#trial-registration-form').show();
-                $('#license-form').hide();
-            });
-            
-            $('#show-license-form').on('click', function() {
-                $('#license-form').show();
-                $('#trial-registration-form').hide();
-            });
+            // License functionality (old handlers removed - using new toggle system below)
             
             $('#submit-trial-registration').on('click', function() {
                 var fullName = $('#full-name').val();
