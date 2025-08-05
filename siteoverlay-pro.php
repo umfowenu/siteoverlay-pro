@@ -192,57 +192,9 @@ class SiteOverlay_Pro {
         <div class="wrap">
             <h1>SiteOverlay Pro Settings</h1>
             
-            <!-- DEBUG SECTION - Shows in WordPress admin -->
-            <div style="background: #ffebee; border: 1px solid #f44336; padding: 15px; margin: 20px 0;">
-                <h3>🔍 Debug Information</h3>
-                
-                <?php
-                // Debug License Status
-                echo '<h4>License Debug:</h4>';
-                echo '<p><strong>License Key:</strong> ' . (get_option('siteoverlay_license_key') ?: 'None') . '</p>';
-                echo '<p><strong>License Validated:</strong> ' . (get_option('siteoverlay_license_validated', false) ? 'Yes' : 'No') . '</p>';
-                echo '<p><strong>is_licensed() result:</strong> ' . ($this->is_licensed() ? 'TRUE' : 'FALSE') . '</p>';
-                
-                // Debug Dynamic Content Manager
-                echo '<h4>Dynamic Content Debug:</h4>';
-                if (isset($this->dynamic_content_manager)) {
-                    echo '<p><strong>Dynamic Content Manager:</strong> ✅ Loaded</p>';
-                    
-                    // Test each dynamic content call
-                    $test_calls = array(
-                        'plugin_download_url',
-                        'installation_video_url', 
-                        'installation_guide_pdf_url'
-                    );
-                    
-                    foreach ($test_calls as $key) {
-                        try {
-                            $value = $this->get_dynamic_content($key, 'FALLBACK');
-                            echo '<p><strong>' . $key . ':</strong> ' . esc_html(print_r($value, true)) . '</p>';
-                        } catch (Exception $e) {
-                            echo '<p><strong>' . $key . ':</strong> ❌ ERROR: ' . esc_html($e->getMessage()) . '</p>';
-                        } catch (Error $e) {
-                            echo '<p><strong>' . $key . ':</strong> ❌ FATAL: ' . esc_html($e->getMessage()) . '</p>';
-                        }
-                    }
-                } else {
-                    echo '<p><strong>Dynamic Content Manager:</strong> ❌ NOT LOADED</p>';
-                }
-                
-                // Debug get_dynamic_content method
-                echo '<h4>Method Debug:</h4>';
-                echo '<p><strong>get_dynamic_content method exists:</strong> ' . (method_exists($this, 'get_dynamic_content') ? 'Yes' : 'No') . '</p>';
-                
-                if (isset($this->dynamic_content_manager)) {
-                    echo '<p><strong>Dynamic Content Manager class:</strong> ' . get_class($this->dynamic_content_manager) . '</p>';
-                    echo '<p><strong>Dynamic Content Manager methods:</strong> ' . implode(', ', get_class_methods($this->dynamic_content_manager)) . '</p>';
-                }
-                ?>
-            </div>
-            
             <!-- Logo Section -->
             <div style="text-align: center; padding: 20px 0; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
-                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
+                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 300px; height: auto;" />
             </div>
             
             <!-- Status Cards -->
@@ -553,14 +505,7 @@ class SiteOverlay_Pro {
                     <p>No overlays found. <a href="<?php echo admin_url('post-new.php'); ?>">Create your first overlay</a></p>
                 <?php endif; ?>
             </div>
-            
-            <!-- Newsletter Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center;">
-                <h3 style="margin: 0 0 15px 0; color: #856404;">📧 Get SEO & Rank & Rent Tips</h3>
-                <p style="margin: 0 0 15px 0; color: #856404;">Subscribe to our newsletter for free tips and updates</p>
-                <input type="email" id="newsletter-email-admin" placeholder="Enter your email" style="padding: 8px; width: 300px; margin-right: 10px;" />
-                <button type="button" class="button button-primary" id="subscribe-newsletter-admin">Subscribe</button>
-            </div>
+
         </div>
         
         <script>
@@ -790,32 +735,30 @@ class SiteOverlay_Pro {
     public function render_meta_box($post) {
         wp_nonce_field('siteoverlay_overlay_nonce', 'siteoverlay_overlay_nonce');
         
-        // LICENSE ENFORCEMENT: Block meta box when unlicensed
+        // LICENSE ENFORCEMENT: Show different versions based on license status
         if (!$this->is_licensed()) {
-            ?>
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; text-align: center;">
-                <h4 style="margin: 0 0 10px 0; color: #856404;">🔒 License Required</h4>
-                <p style="margin: 10px 0; color: #856404;">SiteOverlay Pro requires a valid license to function.</p>
-                <p style="margin: 15px 0;">
-                    <a href="<?php echo admin_url('options-general.php?page=siteoverlay-settings'); ?>" class="button button-primary">
-                        🔑 Activate License
-                    </a>
-                </p>
-            </div>
-            <?php
-            return; // Stop here - don't show overlay form
+            $this->render_unlicensed_meta_box($post);
+        } else {
+            $this->render_licensed_meta_box($post);
         }
-        
-        // Continue with existing meta box code for licensed users...
-        $this->render_licensed_meta_box($post);
     }
     
+    /**
+     * Render unlicensed meta box - same as licensed but WITHOUT overlay URL section
+     */
     private function render_unlicensed_meta_box($post) {
         ?>
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
-                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+            </div>
+            
+            <!-- Status Section (Unlicensed) -->
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 8px; text-align: center; font-size: 12px;">
+                ⚠️ <strong>License Required</strong><br>
+                Type: Unlicensed<br>
+                👁 <?php echo get_post_meta($post->ID, '_siteoverlay_overlay_views', true) ?: '0'; ?> views
             </div>
             
             <!-- Disabled State Message -->
@@ -865,13 +808,7 @@ class SiteOverlay_Pro {
                 <div style="color: #0c5460; font-size: 10px; margin-top: 5px;">Affiliate Link - We earn a commission at no cost to you</div>
             </div>
             
-            <!-- Email Newsletter Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
-                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
-                <input type="email" id="newsletter-email" placeholder="Enter your email" 
-                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
-                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
-            </div>
+
         </div>
         <?php
     }
@@ -883,7 +820,7 @@ class SiteOverlay_Pro {
         <div id="siteoverlay-overlay-container">
             <!-- Logo Section -->
             <div style="text-align: center; padding: 10px 0; background: white;">
-                <img src="https://page1.genspark.site/v1/base64_upload/fe1edd2c48ac954784b3e58ed66b0764" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
+                <img src="https://ebiz360.ca/wp-content/uploads/2025/08/siteoverlay-pro-logo.png" alt="SiteOverlay Pro" style="max-width: 100%; height: auto;" />
             </div>
             
             <!-- Status Display -->
@@ -930,13 +867,7 @@ class SiteOverlay_Pro {
                 </div>
             <?php endif; ?>
             
-            <!-- Email Newsletter Section -->
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; margin: 0;">
-                <div style="color: #856404; font-weight: bold; margin-bottom: 8px;">📧 Get SEO & Rank & Rent Tips</div>
-                <input type="email" id="newsletter-email" placeholder="Enter your email" 
-                       style="width: 100%; padding: 4px; border: 1px solid #ffeaa7; background: white; font-size: 11px; margin-bottom: 8px;" />
-                <button type="button" class="button" id="subscribe-newsletter" style="background: #ffc107; border: 1px solid #ffc107; color: #212529; font-size: 11px; padding: 4px 8px; width: 100%;">Subscribe for Free Tips</button>
-            </div>
+
             
             <!-- Stats Section -->
             <div style="padding: 8px 12px; color: #666; font-size: 10px; border-top: 1px solid #ddd;">
