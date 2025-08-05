@@ -62,6 +62,7 @@ class SiteOverlay_Pro {
             add_action('wp_ajax_siteoverlay_trial_license', array($this, 'ajax_trial_license'));
             add_action('wp_ajax_siteoverlay_validate_license', array($this, 'ajax_validate_license'));
             add_action('wp_ajax_siteoverlay_request_paid_license', array($this, 'ajax_request_paid_license'));
+            add_action('wp_ajax_siteoverlay_save_license_key', array($this, 'ajax_save_license_key'));
         }
         
         // Frontend overlay display ALWAYS available (constitutional rule)
@@ -97,17 +98,46 @@ class SiteOverlay_Pro {
      */
     private function is_licensed() {
         if ($this->is_licensed === null) {
-            $license_key = get_option('siteoverlay_license_key');
-            $license_validated = get_option('siteoverlay_license_validated', false);
+            // Get the stored license key
+            $stored_license_key = get_option('siteoverlay_license_key', '');
             
-            // Simple check: if no license key or not validated, not licensed
-            if (!$license_key || !$license_validated) {
+            if (empty($stored_license_key)) {
+                error_log('🔍 No license key stored');
                 $this->is_licensed = false;
-            } else {
-                $this->is_licensed = true;
+                return false;
             }
+            
+            // Check if we have a cached validation (valid for 1 hour)
+            $last_validated = get_option('siteoverlay_license_validated', 0);
+            $cache_duration = 3600; // 1 hour
+            
+            if ((time() - $last_validated) < $cache_duration) {
+                error_log('🔍 Using cached license validation for key: ' . substr($stored_license_key, 0, 8) . '...');
+                $this->is_licensed = true;
+                return true;
+            }
+            
+            // Validate with API (background check)
+            $this->validate_license_with_api($stored_license_key);
+            
+            // For now, assume valid if we have a key (non-blocking)
+            $this->is_licensed = !empty($stored_license_key);
         }
+        
         return $this->is_licensed;
+    }
+
+    private function validate_license_with_api($license_key) {
+        // This runs in background - don't block the UI
+        wp_remote_post('https://siteoverlay-api-production.up.railway.app/api/validate-license', array(
+            'body' => json_encode(array(
+                'licenseKey' => $license_key,
+                'siteUrl' => home_url()
+            )),
+            'headers' => array('Content-Type' => 'application/json'),
+            'timeout' => 10,
+            'blocking' => false // Non-blocking call
+        ));
     }
     
     /**
@@ -264,7 +294,19 @@ class SiteOverlay_Pro {
                 <?php 
                 $is_registered = get_option('siteoverlay_registration_name');
                 $should_disable_trial = $this->should_disable_trial_button();
+                
+                // Debug information for license tracking
+                $stored_license_key = get_option('siteoverlay_license_key', 'None');
+                $last_validated = get_option('siteoverlay_license_validated', 0);
                 ?>
+                
+                <!-- License Debug Information -->
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 20px; border-radius: 3px;">
+                    <h4 style="margin: 0 0 10px 0; color: #495057;">Current License Information</h4>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>Stored License Key:</strong> <?php echo esc_html($stored_license_key); ?></p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>Last Validated:</strong> <?php echo ($last_validated > 0 ? date('Y-m-d H:i:s', $last_validated) : 'Never'); ?></p>
+                    <p style="margin: 5px 0; font-size: 13px;"><strong>License Status:</strong> <?php echo $this->is_licensed() ? '✅ Licensed' : '❌ Not Licensed'; ?></p>
+                </div>
                 
                 <!-- License Activation Options -->
                 <?php if ($license_status['state'] === 'unlicensed'): ?>
@@ -934,8 +976,19 @@ class SiteOverlay_Pro {
                     }),
                     success: function(response) {
                         if (response.success) {
-                            $('#license-activation-response').html('<span style="color: green;">License activated successfully! Reloading page...</span>');
-                            setTimeout(function() { location.reload(); }, 2000);
+                            // SAVE THE NEW LICENSE KEY TO WORDPRESS
+                            $.post(ajaxurl, {
+                                action: 'siteoverlay_save_license_key',
+                                license_key: licenseKey,
+                                nonce: '<?php echo wp_create_nonce('siteoverlay_overlay_nonce'); ?>'
+                            }, function(saveResponse) {
+                                if (saveResponse.success) {
+                                    $('#license-activation-response').html('<span style="color: green;">License activated successfully! Reloading page...</span>');
+                                    setTimeout(function() { location.reload(); }, 2000);
+                                } else {
+                                    $('#license-activation-response').html('<span style="color: orange;">License validated but not saved locally. Please try again.</span>');
+                                }
+                            });
                         } else {
                             $('#license-activation-response').html('<span style="color: red;">' + response.message + '</span>');
                         }
@@ -1495,6 +1548,40 @@ class SiteOverlay_Pro {
         } else {
             wp_send_json_error($data['message'] ?? 'Failed to process license request');
         }
+    }
+    
+    /**
+     * AJAX handler to save license key locally
+     */
+    public function ajax_save_license_key() {
+        if (!wp_verify_nonce($_POST['nonce'], 'siteoverlay_overlay_nonce')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $license_key = sanitize_text_field($_POST['license_key']);
+        
+        if (empty($license_key)) {
+            wp_send_json_error('Invalid license key');
+            return;
+        }
+        
+        // Save the license key to WordPress options
+        update_option('siteoverlay_license_key', $license_key);
+        update_option('siteoverlay_license_validated', time());
+        
+        // Clear any existing license cache
+        delete_transient('siteoverlay_license_status');
+        delete_option('siteoverlay_license_cache');
+        
+        error_log('✅ License key saved successfully: ' . substr($license_key, 0, 8) . '...');
+        
+        wp_send_json_success('License key saved successfully');
     }
     
     /**
